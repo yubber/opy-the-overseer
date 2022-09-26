@@ -647,59 +647,32 @@ règle("Secondary - Deliver Resource to Overseer / Black Marketeer - Beam Type 4
 	}
 }
 
-règle("Player Lets Go Off Primary Fire")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 1;
-		Tout;
-	}
+rule "release primary fire":
+	@Event eachPlayer
+	@Condition not eventPlayer.isDummy()
+	@Condition not eventPlayer.isHoldingButton(Button.PRIMARY_FIRE)
 
-	conditions
-	{
-		Bouton maintenu enfoncé(Joueur exécutant, Bouton(Tir principal)) == Faux;
-	}
+	# Interrompre si(Joueur exécutant.active_beam_type >= 3);
+	eventPlayer.primaryBlocked = false;
+	if eventPlayer.activeBeamType > -1:
+		eventPlayer.takeBeamSeers = [];
+		eventPlayer.activeBeamType = -1;
+		eventPlayer.soundPos = Vector.UP * getTotalTimeElapsed();
+		eventPlayer.takingFromStash = false;
+		eventPlayer.stealing = false;
 
-	actions
-	{
-		Interrompre si(Joueur exécutant.active_beam_type >= 3);
-		Joueur exécutant.primary_blocked = Faux;
-		Interrompre si(Joueur exécutant.active_beam_type == Faux);
-		Joueur exécutant.who_can_see_harvest_beam = Non applicable;
-		Joueur exécutant.active_beam_type = Faux;
-		Joueur exécutant.sound_position = Vecteur(0, 1000, 0);
-		Joueur exécutant.check_primary_on_stash = Faux;
-		Joueur exécutant.is_stealing = Faux;
-	}
-}
-
-règle("Player Lets Go Off Secondary Fire")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 1;
-		Tout;
-	}
-
-	conditions
-	{
-		Bouton maintenu enfoncé(Joueur exécutant, Bouton(Tir secondaire)) == Faux;
-	}
-
-	actions
-	{
-		Interrompre si(Joueur exécutant.active_beam_type >= 1 && Joueur exécutant.active_beam_type <= 2);
-		Joueur exécutant.secondary_blocked = Faux;
-		Interrompre si(Joueur exécutant.active_beam_type == Faux);
-		Joueur exécutant.who_can_see_dispense_beam = Non applicable;
-		Joueur exécutant.active_beam_type = Faux;
-		Joueur exécutant.sound_position = Vecteur(0, 1000, 0);
-		Joueur exécutant.check_secondary_delivery = Faux;
-		Joueur exécutant.is_stealing = Faux;
-	}
-}
+rule "release secondary"
+	@Event eachPlayer
+	@Condition not eventPlayer.isFiringSecondaryFire()
+	# Interrompre si(Joueur exécutant.active_beam_type >= 1 && Joueur exécutant.active_beam_type <= 2);
+	eventPlayer.secondary_blocked = Faux;
+	# Interrompre si(eventPlayer..active_beam_type == Faux);
+	if eventPlayer.activeBeamType > -1:
+		eventPlayer.putBeamSeers = [];
+		eventPlayer.activeBeamType = -1;
+		eventPlayer.soundPos = Vector.UP * getTotalTimeElapsed();
+		eventPlayer.delivering = false;
+		eventPlayer.stealing = false
 
 règle("Spawn Resources")
 {
