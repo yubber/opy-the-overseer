@@ -52,6 +52,13 @@ paramètres
 # total number of deposits
 #!define DepositNo 12
 
+enum BEAMS:
+	OFF = -1,
+	TAKE_DEPOSIT, # 1 in src
+	TAKE_STASH, # 2 in src
+	PUT_STASH, # 3
+	SELL, # 4
+
 # ALL RESOURCE VALUES MULT BY 10 FOR PRECISION WHILE ROUNDING
 
 rule "global init"
@@ -117,18 +124,18 @@ rule "global init"
 rule "player spawn pos?"
 	@Event eachPlayer
 	@Condition not eventPlayer.isDummy()
-	randomValue = random.uniform(5.205, 72)
-	randomValue = 3 + (0.028 * randomValue ** 3 + -3.008 * randomValue ** 2 + 108 * randomValue) / 72 + 0.500 * randomValue;
-	temp_1 = spawn_center + angleToDirection(random.uniform(0, 359.999), 0) * randomValue
-	temp_2 = raycast(temp_1, temp_1 + Vector.DOWN * 10, [], [], false).getHitPosition()
-	# wait()
-	if distance(temp_1, temp_2) <= 0.25:
+	eventPlayer.temp_2 = random.uniform(5.205, 72)
+	eventPlayer.temp_2 = 3 + (0.028 * eventPlayer.temp_2 ** 3 + -3.008 * eventPlayer.temp_2 ** 2 + 108 * eventPlayer.temp_2) / 72 + 0.500 * eventPlayer.temp_2;
+	eventPlayer.temp_1 = spawnCenter + angleToDirection(random.uniform(0, 359.999), 0) * eventPlayer.temp_2
+	eventPlayer.temp_2 = raycast(eventPlayer.temp_1, eventPlayer.temp_1 + Vector.DOWN * 10, [], [], false).getHitPosition()
+	wait()
+	if distance(eventPlayer.temp_1, eventPlayer.temp_2) <= 0.25:
 		goto RULE_START
-	temp_2 = nearestWalkablePosition(temp_2)
-	if distance(temp_2, marketPos) <= 6.500 or distance(temp_2, techPos) <= 6.500:
-	or distance(temp_2, vect(7.940, 26.980, 195.610)) <= 120 or distance(temp_2, vect(86.150, 23.600, 113.380)) <= 120
-	or any([distance(x, temp_2) < 8 for x in stashesPos.exclude(0)])
-	or any([distance(x, temp_2) < 5 for x in resourcePos.exclude(defaultVect)])
+	eventPlayer.temp_2 = nearestWalkablePosition(eventPlayer.temp_2)
+	if distance(eventPlayer.temp_2, marketPos) <= 6.500 or distance(eventPlayer.temp_2, techPos) <= 6.500:
+	or distance(eventPlayer.temp_2, vect(7.940, 26.980, 195.610)) <= 120 or distance(eventPlayer.temp_2, vect(86.150, 23.600, 113.380)) <= 120
+	or any([distance(x, eventPlayer.temp_2) < 8 for x in stashesPos.exclude(0)])
+	or any([distance(x, eventPlayer.temp_2) < 5 for x in resourcePos.exclude(defaultVect)])
 
 	eventPlayer.stealingModif = 1
 
@@ -226,50 +233,40 @@ rule "player spawned":
 	if eventPlayer.getCurrentHero() in [Hero.BAPTISTE, Hero.GENJI, Hero.LUCIO, Hero.HANZO, Hero.MERCY]:
 		eventPlayer.setStatusEffect(null, Status.HACKED, 9999)
 
-règle("Primary - Get Resource from Node - Beam Type 1")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Les deux;
-		Tout;
-	}
+rule "take from deposit":
+	@Condition eventPlayer.isHoldingButton(Button.PRIMARY_FIRE)
+	@Condition eventPlayer.beamCheckCd <= getTotalTimeElapsed()
+	@Condition not eventPlayer.primaryBlocked
+	@Condition eventPlayer.activeBeamType == BEAMS.OFF
 
-	conditions
-	{
-		Bouton maintenu enfoncé(Joueur exécutant, Bouton(Tir principal)) == Vrai;
-		Joueur exécutant.beam_check_cooldown <= Temps total écoulé;
-		Joueur exécutant.primary_blocked == Faux;
-		Joueur exécutant.active_beam_type <= 1;
-	}
-
-	actions
-	{
-		Interrompre si(Joueur exécutant.carrying_stash == Vrai);
-		Joueur exécutant.beam_check_cooldown = Temps total écoulé + 0.250;
-		Passer si(Joueur exécutant.active_beam_type == 1, 2);
-		temp_1 = Premier de(Tableau trié(Tableau filtré(Supprimer du tableau(resourcePos, zero_vector),
-			Dans le champ de vision(Joueur exécutant, Élément de tableau actuel, 90) && Distance entre(Élément de tableau actuel,
-			Joueur exécutant) <= Joueur exécutant.harvest_length && Dans la ligne de vue(Position des yeux(Joueur exécutant),
-			Position des yeux(Joueur exécutant) + Regard en direction de(Joueur exécutant) * (Distance entre(Position des yeux(
-			Joueur exécutant), Élément de tableau actuel + Haut) + -0.500), Les barrières ne bloquent pas la ligne de vue)
-			&& Distance entre(Position des yeux(Joueur exécutant) + Regard en direction de(Joueur exécutant) * Produit scalaire(
-			Élément de tableau actuel + Vecteur(0, 1, 0) - Position des yeux(Joueur exécutant), Regard en direction de(Joueur exécutant)),
-			Élément de tableau actuel + Vecteur(0, 1, 0)) <= 0.625), Angle entre deux vecteurs(Regard en direction de(Joueur exécutant),
-			Direction(Position des yeux(Joueur exécutant), Élément de tableau actuel + Vecteur(0, 1, 0)))));
-		Passer(1);
-		temp_1 = Tableau filtré(Joueur exécutant.beam_target, Distance entre(Joueur exécutant.beam_target, Joueur exécutant)
+	if eventPlayer.carryingStash:
+		smallMessage(eventPlayer, "can't use beam while carrying stash.")
+	else:
+		eventPlayer.beamCheckCd = getTotalTimeElapsed() + 0.256
+		if eventPlayer.activeBeamType != BEAMS.TAKE_DEPOSIT:
+			# resources in los, fov and range -> sort by closeness to reticle
+			eventPlayer.temp_1 = sorted([x for x in resourcePos.exclude(defaultVector) if distance(x, eventPlayer) < eventPlayer.takeRange and isInLoS(eventPlayer.getEyePosition(), x, BarrierLos.PASS_THROUGH_BARRIERS) and eventPlayer.isInViewAngle(x, 90)]
+				lambda y: angleBetweenVectors(eventPlayer.getFacingDirection(), y - eventPlayer.getPosition()))
+			# Joueur exécutant) <= Joueur exécutant.harvest_length && Dans la ligne de vue(Position des yeux(Joueur exécutant),
+			# Position des yeux(Joueur exécutant) + Regard en direction de(Joueur exécutant) * (Distance entre(Position des yeux(
+			# Joueur exécutant), Élément de tableau actuel + Haut) + -0.500), Les barrières ne bloquent pas la ligne de vue)
+			# && Distance entre(Position des yeux(Joueur exécutant) + Regard en direction de(Joueur exécutant) * Produit scalaire(
+			# Élément de tableau actuel + Vecteur(0, 1, 0) - Position des yeux(Joueur exécutant), Regard en direction de(Joueur exécutant)),
+			# Élément de tableau actuel + Vecteur(0, 1, 0)) <= 0.625), Angle entre deux vecteurs(Regard en direction de(Joueur exécutant),
+			# Direction(Position des yeux(Joueur exécutant), Élément de tableau actuel + Vecteur(0, 1, 0)))));
+			# Passer(1);
+			# temp_1 = Tableau filtré(Joueur exécutant.beam_target, Distance entre(Joueur exécutant.beam_target, Joueur exécutant)
 			<= Joueur exécutant.harvest_length + 0.250);
-		Passer si(temp_1 == Vrai, 7);
-		Joueur exécutant.sound_position = Vecteur(0, 1000, 0);
-		Joueur exécutant.who_can_see_harvest_beam = Non applicable;
-		Passer si(Joueur exécutant.active_beam_type == Vrai, 1);
-		Joueur exécutant.check_primary_on_stash = Vrai;
+		if eventPlayer.temp_1 == []: # if no bitches
+			eventPlayer.soundPos = Vector.UP * getTotalTimeElapsed()
+			eventPlayer.harvestBeamSeers = []
+			if eventPlayer.activeBeamType == BEAMS.
+		eventPlayer.takingFromStash
 		Joueur exécutant.active_beam_type = Faux;
 		Joueur exécutant.primary_blocked = Vrai;
 		Interrompre;
-		resource_despawn_times[Joueur exécutant.beam_target_index] = Temps total écoulé + 60;
-		Passer si(Joueur exécutant.active_beam_type != 1, 36);
+		resourceDespawnTimes[eventPlayer.beamTargetIndex] = getTotalTimeElapsed() + 60
+		Passer si(Joueur exécutant.active_beam_type != 1, 36)
 		temp_3 = Joueur exécutant.harvest_power;
 		Passer si(
 			Joueur exécutant.harvest_power <= Joueur exécutant.carry_limit - Joueur exécutant.carry_resources[Joueur exécutant.resource_type],
@@ -286,19 +283,8 @@ règle("Primary - Get Resource from Node - Beam Type 1")
 		Joueur exécutant.temp_effect_position = resourcePos[Joueur exécutant.beam_target_index];
 		Jouer un effet(Tous les joueurs(Équipe 1), Son d’explosion d’amélioration, Couleur(Blanc), Joueur exécutant.temp_effect_position,
 			50);
-		Passer(Joueur exécutant.resource_type * 2 + 1);
-		Interrompre;
-		Jouer un effet(Tous les joueurs(Équipe 1), Bon effet de ramassage, Couleur(Bleu ciel), Joueur exécutant.temp_effect_position, 1);
-		Passer(9);
-		Jouer un effet(Tous les joueurs(Équipe 1), Bon effet de ramassage, Couleur(Vert), Joueur exécutant.temp_effect_position, 1);
-		Passer(7);
-		Jouer un effet(Tous les joueurs(Équipe 1), Bon effet de ramassage, Couleur(Orange), Joueur exécutant.temp_effect_position, 1);
-		Passer(5);
-		Jouer un effet(Tous les joueurs(Équipe 1), Bon effet de ramassage, Couleur(Citron vert), Joueur exécutant.temp_effect_position, 1);
-		Passer(3);
-		Jouer un effet(Tous les joueurs(Équipe 1), Bon effet de ramassage, Couleur(Blanc), Joueur exécutant.temp_effect_position, 1);
-		Passer(1);
-		Jouer un effet(Tous les joueurs(Équipe 1), Bon effet de ramassage, Couleur(Rouge), Joueur exécutant.temp_effect_position, 1);
+
+		playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, resourceColors[eventPlayer.resourceType], eventPlayer.tempFxPos, 1)
 		resourcePos[Joueur exécutant.beam_target_index] = zero_vector;
 		resourceAmts[Joueur exécutant.beam_target_index] = Faux;
 		resource_despawn_times[temp_2] = 0;
@@ -309,16 +295,14 @@ règle("Primary - Get Resource from Node - Beam Type 1")
 		Passer(2);
 		temp_2 = temp_3;
 		resourceAmts[Joueur exécutant.beam_target_index] -= temp_2;
-		Joueur exécutant.carry_resources[Joueur exécutant.resource_type] += temp_2;
+		eventPlayer.heldResources[eventPlayer.resourceType] += temp_2;
 		Interrompre;
 		Joueur exécutant.beam_target = temp_1;
-		Joueur exécutant.beam_target_index = Index de la valeur de tableau(resourcePos, temp_1);
-		Joueur exécutant.resource_type = Arrondir à l’entier(Joueur exécutant.beam_target_index * 0.500, En dessous);
-		Joueur exécutant.who_can_see_harvest_beam = Tous les joueurs(Équipe 1);
-		Joueur exécutant.active_beam_type = 1;
-		Joueur exécutant.sound_position = Joueur exécutant.beam_target;
-	}
-}
+		eventPlayer.beamIndex = Index de la valeur de tableau(resourcePos, temp_1);
+		eventPlayer.resourceSel = floor(eventPlayer.targetIndex * 0.500)
+		eventPlayer.takeBeamSeers = getAllPlayers()
+		eventPlayer.activeBeamType = BEAMS.TAKE_DEPOSIT
+		eventPlayer.soundPos = eventPlayer.targetPos
 
 règle("Primary - Get Resource from Stash - Beam Type 2")
 {
@@ -635,26 +619,15 @@ règle("Player Changes Beam Setting: Ability 2")
 	}
 }
 
-règle("Player Changes Beam Setting: Interact")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 1;
-		Tout;
-	}
-
-	conditions
-	{
-		Bouton maintenu enfoncé(Joueur exécutant, Bouton(Interaction)) == Vrai;
-		Joueur exécutant.active_beam_type == Faux;
-	}
-
-	actions
-	{
-		Joueur exécutant.resource_type = Joueur exécutant.resource_type + -1 + (Joueur exécutant.resource_type <= 0) * 6;
-	}
-}
+rule "beam setting prev [ult]":
+	@Event eachPlayer
+	@Condition not eventPlayer.isDummy()
+	@Condition eventPlayer.isHoldingButton(Button.ULTIMATE)
+	@Condition eventPlayer.beamType == -1
+	if eventPlayer.resourceType == 0:
+		eventPlayer.resourceType = 5
+	else:
+		eventPlayer.resourceType -= 1
 
 règle("Despawn Inactive Resources")
 {
@@ -696,23 +669,6 @@ règle("Despawn Inactive Resources")
 		Passer(1);
 		Jouer un effet(Tous les joueurs(Équipe 1), Bon effet de ramassage, Couleur(Rouge), temp_effect_position, 1);
 		total_resources -= 1;
-	}
-}
-
-règle("Player Left Match")
-{
-	évènement
-	{
-		Un joueur a quitté la partie;
-		Équipe 1;
-		Tout;
-	}
-
-	actions
-	{
-		stash_positions[Emplacement de(Joueur exécutant)] = 0;
-	}
-}
 
 règle("Update Loyalty Rank")
 {
@@ -891,14 +847,7 @@ règle("Ultimate Button: Delete Carried Resources")
 	}
 }
 
-règle("")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 1;
-		Tout;
-	}
+rule "crouch checking":
 
 	conditions
 	{

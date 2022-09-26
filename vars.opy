@@ -1,8 +1,5 @@
 globalvar overseer_resource
 globalvar spawn_center
-globalvar temp_1
-globalvar temp_2
-globalvar temp_3
 globalvar stash_positions
 globalvar total_resources
 globalvar resource_cooldown
@@ -50,6 +47,9 @@ globalvar techPos
 globalvar default_prices
 globalvar last_round
 globalvar seconds_left
+
+playervar temp_1
+playervar temp_2
 
 playervar credits
 playervar stash_position
