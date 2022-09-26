@@ -61,6 +61,13 @@ enum BEAMS:
 
 # ALL RESOURCE VALUES MULT BY 10 FOR PRECISION WHILE ROUNDING
 
+rule getTakeTarget(): # temp_2 is list of candidate pos, temp_1 is output
+	eventPlayer.temp_1 = sorted([x for x in temp_2
+		if distance(x, eventPlayer) < eventPlayer.takeRange
+		and eventPlayer.isInViewAngle(x, 90)
+		and isInLoS(eventPlayer.getEyePosition(), x, BarrierLos.PASS_THROUGH_BARRIERS)]
+		lambda y: angleBetweenVectors(eventPlayer.getFacingDirection(), y - eventPlayer.getPosition()))[0]
+
 rule "global init"
 		# disableInspector()
 		disableGamemodeCompletion()
@@ -184,7 +191,7 @@ rule "player init"
 		createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos + Vector.UP, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 
 		createBeam(eventPlayer.beamSeers, Beam.GOOD, eventPlayer + worldVector(vect(-0.225, 1.82, 0), eventPlayer, Transform.ROTATION_AND_TRANSLATION),
-			eventPlayer.beamTarget + Vector.UP, resourceColors[eventPlayer.activeBeamType], EffectReeval.VISIBILITY_POSITION_RADIUS_AND_COLOR)
+			eventPlayer.beamTarget + Vector.UP, resourceColors[eventPlayer.activeBeam], EffectReeval.VISIBILITY_POSITION_RADIUS_AND_COLOR)
 
 		# Créer un effet de rayon(J end color reeval  exécutant.who_can_see_harvest_beam, Bon rayon, Joueur exécutant + Vecteur(0, 1.820, 0)
 		# 	+ Vecteur mondial de(Vecteur(-0.225, 0, 0), Joueur exécutant, Rotation) + Direction depuis des angles(
@@ -233,20 +240,20 @@ rule "player spawned":
 	if eventPlayer.getCurrentHero() in [Hero.BAPTISTE, Hero.GENJI, Hero.LUCIO, Hero.HANZO, Hero.MERCY]:
 		eventPlayer.setStatusEffect(null, Status.HACKED, 9999)
 
-rule "take from deposit":
+rule "take from deposit (beam 1, primary)":
 	@Condition eventPlayer.isHoldingButton(Button.PRIMARY_FIRE)
 	@Condition eventPlayer.beamCheckCd <= getTotalTimeElapsed()
 	@Condition not eventPlayer.primaryBlocked
-	@Condition eventPlayer.activeBeamType == BEAMS.OFF
+	@Condition eventPlayer.activeBeam == BEAMS.OFF
 
 	if eventPlayer.carryingStash:
 		smallMessage(eventPlayer, "can't use beam while carrying stash.")
 	else:
 		eventPlayer.beamCheckCd = getTotalTimeElapsed() + 0.256
-		if eventPlayer.activeBeamType != BEAMS.TAKE_DEPOSIT:
+		if eventPlayer.activeBeam != BEAMS.TAKE_DEPOSIT:
 			# resources in los, fov and range -> sort by closeness to reticle
-			eventPlayer.temp_1 = sorted([x for x in resourcePos.exclude(defaultVector) if distance(x, eventPlayer) < eventPlayer.takeRange and isInLoS(eventPlayer.getEyePosition(), x, BarrierLos.PASS_THROUGH_BARRIERS) and eventPlayer.isInViewAngle(x, 90)]
-				lambda y: angleBetweenVectors(eventPlayer.getFacingDirection(), y - eventPlayer.getPosition()))
+			eventPlayer.temp_2 = resourcePos.exclude(defaultVector)
+			getTakeTarget()
 			# Joueur exécutant) <= Joueur exécutant.harvest_length && Dans la ligne de vue(Position des yeux(Joueur exécutant),
 			# Position des yeux(Joueur exécutant) + Regard en direction de(Joueur exécutant) * (Distance entre(Position des yeux(
 			# Joueur exécutant), Élément de tableau actuel + Haut) + -0.500), Les barrières ne bloquent pas la ligne de vue)
@@ -260,13 +267,11 @@ rule "take from deposit":
 		if eventPlayer.temp_1 == []: # if no bitches
 			eventPlayer.soundPos = Vector.UP * getTotalTimeElapsed()
 			eventPlayer.harvestBeamSeers = []
-			if eventPlayer.activeBeamType == BEAMS.
-		eventPlayer.takingFromStash
-		Joueur exécutant.active_beam_type = Faux;
-		Joueur exécutant.primary_blocked = Vrai;
-		Interrompre;
+			if eventPlayer.activeBeam == BEAMS.OFF
+			# Joueur exécutant.primary_blocked = Vrai;
+			return
 		resourceDespawnTimes[eventPlayer.beamTargetIndex] = getTotalTimeElapsed() + 60
-		Passer si(Joueur exécutant.active_beam_type != 1, 36)
+		Passer si(Joueur exécutant.activeBeam != 1, 36)
 		temp_3 = Joueur exécutant.harvest_power;
 		Passer si(
 			Joueur exécutant.harvest_power <= Joueur exécutant.carry_limit - Joueur exécutant.carry_resources[Joueur exécutant.resource_type],
@@ -290,53 +295,41 @@ rule "take from deposit":
 		resource_despawn_times[temp_2] = 0;
 		total_resources -= 1;
 		Joueur exécutant.who_can_see_harvest_beam = Non applicable;
-		Joueur exécutant.active_beam_type = 1;
+		Joueur exécutant.activeBeam = 1;
 		Joueur exécutant.primary_blocked = Vrai;
-		Passer(2);
-		temp_2 = temp_3;
-		resourceAmts[Joueur exécutant.beam_target_index] -= temp_2;
 		eventPlayer.heldResources[eventPlayer.resourceType] += temp_2;
 		Interrompre;
 		Joueur exécutant.beam_target = temp_1;
 		eventPlayer.beamIndex = Index de la valeur de tableau(resourcePos, temp_1);
 		eventPlayer.resourceSel = floor(eventPlayer.targetIndex * 0.500)
 		eventPlayer.takeBeamSeers = getAllPlayers()
-		eventPlayer.activeBeamType = BEAMS.TAKE_DEPOSIT
+		eventPlayer.activeBeam = BEAMS.TAKE_DEPOSIT
 		eventPlayer.soundPos = eventPlayer.targetPos
 
-règle("Primary - Get Resource from Stash - Beam Type 2")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 1;
-		Tout;
-	}
+rule "take from stash (beam 2, primary)"
+	@Event eachPlayer
+	@Condition eventPlayer.isHoldingButton(Button.PRIMARY_FIRE)
+	@Condition eventPlayer.beamCheckCd <= getTotalTimeElapsed() or eventPlayer.checkTakeFromStash
+	@Condition eventPlayer.activeBeam = BEAMS.TAKE_STASH
 
-	conditions
-	{
-		Bouton maintenu enfoncé(Joueur exécutant, Bouton(Tir principal)) == Vrai;
-		(Joueur exécutant.beam_check_cooldown <= Temps total écoulé || Joueur exécutant.check_primary_on_stash == Vrai) == Vrai;
-		Joueur exécutant.active_beam_type != 1;
-		Joueur exécutant.active_beam_type <= 2;
-	}
+	if not (eventPlayer.checkTakeFromStash or eventPlayer.activeBeam = BEAMS.OFF):
+		eventPlayer.beamCheckCd = getTotalTimeElapsed() + 0.25
 
-	actions
-	{
-		Passer si(Joueur exécutant.check_primary_on_stash == Vrai || Joueur exécutant.active_beam_type == Faux, 2);
-		Joueur exécutant.beam_check_cooldown = Temps total écoulé + 0.250;
-		Passer(1);
-		Joueur exécutant.check_primary_on_stash = Faux;
-		Passer si(Joueur exécutant.active_beam_type == 2, 3);
-		temp_1 = Premier de(Tableau trié(Tableau filtré(Supprimer du tableau(stash_positions, 0), Dans le champ de vision(
-			Joueur exécutant, Élément de tableau actuel, 90) && Distance entre(Élément de tableau actuel, Joueur exécutant)
-			<= Joueur exécutant.harvest_length && Dans la ligne de vue(Position des yeux(Joueur exécutant), Position des yeux(
-			Joueur exécutant) + Regard en direction de(Joueur exécutant) * (Distance entre(Position des yeux(Joueur exécutant),
-			Élément de tableau actuel + Haut) + -1), Les barrières ne bloquent pas la ligne de vue) && Distance entre(Position des yeux(
-			Joueur exécutant) + Regard en direction de(Joueur exécutant) * Produit scalaire(Élément de tableau actuel + Vecteur(0, 1, 0)
-			- Position des yeux(Joueur exécutant), Regard en direction de(Joueur exécutant)), Élément de tableau actuel + Vecteur(0, 1, 0))
-			<= 2.750), Angle entre deux vecteurs(Regard en direction de(Joueur exécutant), Direction(Position des yeux(Joueur exécutant),
-			Élément de tableau actuel + Vecteur(0, 1, 0)))));
+	if eventPlayer.activeBeam != BEAMS.TAKE_STASH:
+		eventPlayer.temp_1 = sorted([y for y in [x.stashPos for x in getPlayers(Team.ALL) if not x.isDummy()].exclude(0)
+			if distance(y, eventPlayer) <= eventPlayer.takeRange
+			and eventPlayer.isInViewAngle(y, 90)
+			and isInLoS(eventPlayer.getEyePosition(), y, BarrierLos.PASS_THROUGH_BARRIERS)],
+			lambda z: )
+		# temp_1 = Premier de(Tableau trié(Tableau filtré(Supprimer du tableau(stash_positions, 0), Dans le champ de vision(
+		# 	Joueur exécutant, Élément de tableau actuel, 90) && Distance entre(Élément de tableau actuel, Joueur exécutant)
+		# 	<= Joueur exécutant.harvest_length && Dans la ligne de vue(Position des yeux(Joueur exécutant), Position des yeux(
+		# 	Joueur exécutant) + Regard en direction de(Joueur exécutant) * (Distance entre(Position des yeux(Joueur exécutant),
+		# 	Élément de tableau actuel + Haut) + -1), Les barrières ne bloquent pas la ligne de vue) && Distance entre(Position des yeux(
+		# 	Joueur exécutant) + Regard en direction de(Joueur exécutant) * Produit scalaire(Élément de tableau actuel + Vecteur(0, 1, 0)
+		# 	- Position des yeux(Joueur exécutant), Regard en direction de(Joueur exécutant)), Élément de tableau actuel + Vecteur(0, 1, 0))
+		# 	<= 2.750), Angle entre deux vecteurs(Regard en direction de(Joueur exécutant), Direction(Position des yeux(Joueur exécutant),
+		# 	Élément de tableau actuel + Vecteur(0, 1, 0)))));
 		Joueur exécutant.beam_target_index = Index de la valeur de tableau(stash_positions, temp_1);
 		Passer(1);
 		temp_1 = Tableau filtré(Joueur exécutant.beam_target, Distance entre(Joueur exécutant.beam_target, Joueur exécutant)
@@ -345,11 +338,11 @@ règle("Primary - Get Resource from Stash - Beam Type 2")
 			.stash_resources[Joueur exécutant.resource_type] > 0, 6);
 		Joueur exécutant.sound_position = Vecteur(0, 1000, 0);
 		Joueur exécutant.who_can_see_harvest_beam = Non applicable;
-		Joueur exécutant.active_beam_type = Faux;
+		Joueur exécutant.activeBeam = Faux;
 		Joueur exécutant.primary_blocked = Vrai;
 		Joueur exécutant.is_stealing = Faux;
 		Interrompre;
-		Passer si(Joueur exécutant.active_beam_type != 2, 15);
+		Passer si(Joueur exécutant.activeBeam != 2, 15);
 		temp_3 = Joueur exécutant.harvest_power;
 		Passer si(
 			Joueur exécutant.harvest_power <= Joueur exécutant.carry_limit - Joueur exécutant.carry_resources[Joueur exécutant.resource_type],
@@ -374,12 +367,10 @@ règle("Primary - Get Resource from Stash - Beam Type 2")
 		Interrompre;
 		Joueur exécutant.beam_target = temp_1;
 		Joueur exécutant.who_can_see_harvest_beam = Tous les joueurs(Équipe 1);
-		Joueur exécutant.active_beam_type = 2;
+		Joueur exécutant.activeBeam = 2;
 		Joueur exécutant.sound_position = Joueur exécutant.beam_target;
 		Interrompre si(Joueur exécutant.beam_target_index == Emplacement de(Joueur exécutant));
-		Joueur exécutant.is_stealing = Vrai;
-	}
-}
+		eventPlayer.stealing = true
 
 règle("Secondary - Put Resource Into Stash - Beam Type 3")
 {
@@ -395,14 +386,14 @@ règle("Secondary - Put Resource Into Stash - Beam Type 3")
 		Bouton maintenu enfoncé(Joueur exécutant, Bouton(Tir secondaire)) == Vrai;
 		Joueur exécutant.beam_check_cooldown <= Temps total écoulé;
 		Joueur exécutant.secondary_blocked == Faux;
-		(Joueur exécutant.active_beam_type == 0 || Joueur exécutant.active_beam_type == 3) == Vrai;
+		(Joueur exécutant.activeBeam == 0 || Joueur exécutant.activeBeam == 3) == Vrai;
 	}
 
 	actions
 	{
-		Interrompre si(Joueur exécutant.active_beam_type > 0 && Joueur exécutant.active_beam_type != 3);
+		Interrompre si(Joueur exécutant.activeBeam > 0 && Joueur exécutant.activeBeam != 3);
 		Joueur exécutant.beam_check_cooldown = Temps total écoulé + 0.250;
-		Passer si(Joueur exécutant.active_beam_type == 3, 3);
+		Passer si(Joueur exécutant.activeBeam == 3, 3);
 		temp_1 = Premier de(Tableau trié(Tableau filtré(Supprimer du tableau(stash_positions, 0), Dans le champ de vision(
 			Joueur exécutant, Élément de tableau actuel, 90) && Distance entre(Élément de tableau actuel, Joueur exécutant)
 			<= Joueur exécutant.dispense_length && Dans la ligne de vue(Position des yeux(Joueur exécutant), Position des yeux(
@@ -419,12 +410,12 @@ règle("Secondary - Put Resource Into Stash - Beam Type 3")
 		Passer si(temp_1 == Vrai && Joueur exécutant.carry_resources[Joueur exécutant.resource_type] > 0, 7);
 		Joueur exécutant.sound_position = Vecteur(0, 1000, 0);
 		Joueur exécutant.who_can_see_dispense_beam = Non applicable;
-		Passer si(Joueur exécutant.active_beam_type == Vrai, 1);
+		Passer si(Joueur exécutant.activeBeam == Vrai, 1);
 		Joueur exécutant.check_secondary_delivery = Vrai;
-		Joueur exécutant.active_beam_type = Faux;
+		Joueur exécutant.activeBeam = Faux;
 		Joueur exécutant.secondary_blocked = Vrai;
 		Interrompre;
-		Passer si(Joueur exécutant.active_beam_type != 3, 14);
+		Passer si(Joueur exécutant.activeBeam != 3, 14);
 		temp_3 = Joueur exécutant.dispense_power;
 		Passer si(Joueur exécutant.dispense_power <= Joueurs dans l’emplacement(Joueur exécutant.beam_target_index, Équipe 1)
 			.stash_limit - Joueurs dans l’emplacement(Joueur exécutant.beam_target_index, Équipe 1)
@@ -447,7 +438,7 @@ règle("Secondary - Put Resource Into Stash - Beam Type 3")
 		Interrompre;
 		Joueur exécutant.beam_target = temp_1;
 		Joueur exécutant.who_can_see_dispense_beam = Tous les joueurs(Équipe 1);
-		Joueur exécutant.active_beam_type = 3;
+		Joueur exécutant.activeBeam = 3;
 		Joueur exécutant.sound_position = Joueur exécutant.beam_target;
 	}
 }
@@ -465,16 +456,16 @@ règle("Secondary - Deliver Resource to Overseer / Black Marketeer - Beam Type 4
 	{
 		Bouton maintenu enfoncé(Joueur exécutant, Bouton(Tir secondaire)) == Vrai;
 		(Joueur exécutant.beam_check_cooldown <= Temps total écoulé || Joueur exécutant.check_secondary_delivery == Vrai) == Vrai;
-		(Joueur exécutant.active_beam_type == 0 || Joueur exécutant.active_beam_type >= 4) == Vrai;
+		(Joueur exécutant.activeBeam == 0 || Joueur exécutant.activeBeam >= 4) == Vrai;
 	}
 
 	actions
 	{
-		Passer si(Joueur exécutant.check_secondary_delivery == Vrai || Joueur exécutant.active_beam_type == Faux, 2);
+		Passer si(Joueur exécutant.check_secondary_delivery == Vrai || Joueur exécutant.activeBeam == Faux, 2);
 		Joueur exécutant.beam_check_cooldown = Temps total écoulé + 0.250;
 		Passer(1);
 		Joueur exécutant.check_secondary_delivery = Faux;
-		Passer si(Joueur exécutant.active_beam_type >= 4, 4);
+		Passer si(Joueur exécutant.activeBeam >= 4, 4);
 		temp_1 = Tableau filtré(overseerPos, Dans le champ de vision(Joueur exécutant, overseerPos, 90)
 			&& Distance entre(overseerPos, Joueur exécutant) <= Joueur exécutant.dispense_length && Dans la ligne de vue(
 			Position des yeux(Joueur exécutant), Position des yeux(Joueur exécutant) + Regard en direction de(Joueur exécutant) * (
@@ -500,18 +491,18 @@ règle("Secondary - Deliver Resource to Overseer / Black Marketeer - Beam Type 4
 			temp_1 != overseerPos && Joueur exécutant.carry_resources[Joueur exécutant.resource_type] > 0)), 6);
 		Joueur exécutant.sound_position = Vecteur(0, 1000, 0);
 		Joueur exécutant.who_can_see_dispense_beam = Non applicable;
-		Joueur exécutant.active_beam_type = Faux;
+		Joueur exécutant.activeBeam = Faux;
 		Joueur exécutant.secondary_blocked = Vrai;
 		Joueur exécutant.is_stealing = Faux;
 		Interrompre;
-		Passer si(Joueur exécutant.active_beam_type < 4, 14);
+		Passer si(Joueur exécutant.activeBeam < 4, 14);
 		temp_3 = Joueur exécutant.dispense_power;
 		Passer si(temp_3 < Joueur exécutant.carry_resources[Joueur exécutant.resource_type], 3);
 		temp_3 = Joueur exécutant.carry_resources[Joueur exécutant.resource_type];
 		Joueur exécutant.carry_resources[Joueur exécutant.resource_type] = 0;
 		Passer(1);
 		Joueur exécutant.carry_resources[Joueur exécutant.resource_type] -= temp_3;
-		Passer si(Joueur exécutant.active_beam_type > 4, 4);
+		Passer si(Joueur exécutant.activeBeam > 4, 4);
 		Joueur exécutant.credits += temp_3 * Joueur exécutant.player_prices[6];
 		Joueur exécutant.loyalty_hidden += temp_3;
 		Joueur exécutant.contributed_in_phase += temp_3;
@@ -524,8 +515,8 @@ règle("Secondary - Deliver Resource to Overseer / Black Marketeer - Beam Type 4
 		Joueur exécutant.resource_type = (temp_1 == overseerPos) * (previous_resource + -1) + (
 			temp_1 != overseerPos) * Joueur exécutant.resource_type;
 		Joueur exécutant.who_can_see_dispense_beam = Tous les joueurs(Équipe 1);
-		Joueur exécutant.active_beam_type = 4 + (temp_1 != overseerPos) * 1;
-		Joueur exécutant.is_stealing = Joueur exécutant.active_beam_type == 5;
+		Joueur exécutant.activeBeam = 4 + (temp_1 != overseerPos) * 1;
+		Joueur exécutant.is_stealing = Joueur exécutant.activeBeam == 5;
 		Joueur exécutant.sound_position = Joueur exécutant.beam_target;
 	}
 }
@@ -535,11 +526,11 @@ rule "release primary fire":
 	@Condition not eventPlayer.isDummy()
 	@Condition not eventPlayer.isHoldingButton(Button.PRIMARY_FIRE)
 
-	# Interrompre si(Joueur exécutant.active_beam_type >= 3);
+	# Interrompre si(Joueur exécutant.activeBeam >= 3);
 	eventPlayer.primaryBlocked = false;
-	if eventPlayer.activeBeamType > -1:
+	if eventPlayer.activeBeam > -1:
 		eventPlayer.takeBeamSeers = [];
-		eventPlayer.activeBeamType = -1;
+		eventPlayer.activeBeam = -1;
 		eventPlayer.soundPos = Vector.UP * getTotalTimeElapsed();
 		eventPlayer.takingFromStash = false;
 		eventPlayer.stealing = false;
@@ -547,12 +538,12 @@ rule "release primary fire":
 rule "release secondary"
 	@Event eachPlayer
 	@Condition not eventPlayer.isFiringSecondaryFire()
-	# Interrompre si(Joueur exécutant.active_beam_type >= 1 && Joueur exécutant.active_beam_type <= 2);
+	# Interrompre si(Joueur exécutant.activeBeam >= 1 && Joueur exécutant.activeBeam <= 2);
 	eventPlayer.secondary_blocked = Faux;
-	# Interrompre si(eventPlayer..active_beam_type == Faux);
-	if eventPlayer.activeBeamType > -1:
+	# Interrompre si(eventPlayer.activeBeam == Faux);
+	if eventPlayer.activeBeam > -1:
 		eventPlayer.putBeamSeers = [];
-		eventPlayer.activeBeamType = -1;
+		eventPlayer.activeBeam = -1;
 		eventPlayer.soundPos = Vector.UP * getTotalTimeElapsed();
 		eventPlayer.delivering = false;
 		eventPlayer.stealing = false
@@ -598,7 +589,7 @@ règle("Spawn Resources")
 	}
 }
 
-règle("Player Changes Beam Setting: Ability 2")
+rule "next resource [ability 2]"
 {
 	évènement
 	{
@@ -610,7 +601,7 @@ règle("Player Changes Beam Setting: Ability 2")
 	conditions
 	{
 		Bouton maintenu enfoncé(Joueur exécutant, Bouton(Capacité 2)) == Vrai;
-		Joueur exécutant.active_beam_type == Faux;
+		Joueur exécutant.activeBeam == Faux;
 	}
 
 	actions
@@ -619,7 +610,7 @@ règle("Player Changes Beam Setting: Ability 2")
 	}
 }
 
-rule "beam setting prev [ult]":
+rule "prev resource [ult]":
 	@Event eachPlayer
 	@Condition not eventPlayer.isDummy()
 	@Condition eventPlayer.isHoldingButton(Button.ULTIMATE)
@@ -1645,7 +1636,7 @@ règle("Player Is Stealing")
 	{
 		Joueur exécutant.stealing_cooldown = Temps total écoulé + 0.250;
 		Passer si(Joueur exécutant.spam_counter >= 30, 9);
-		Passer si(Joueur exécutant.active_beam_type != 2, 2);
+		Passer si(Joueur exécutant.activeBeam != 2, 2);
 		Joueur exécutant.stealing_from = Joueurs dans l’emplacement(Joueur exécutant.beam_target_index, Équipe 1);
 		Passer si(Points de vie(Joueur exécutant.stealing_from) == Vrai && Distance entre(Joueur exécutant, Joueur exécutant.stealing_from)
 			<= 50 + Joueur exécutant.upgrades[5] * -4 && Dans le champ de vision(Joueur exécutant.stealing_from, Joueur exécutant, 90)
@@ -1656,19 +1647,19 @@ règle("Player Is Stealing")
 			Élément de tableau actuel, Joueur exécutant) > 50 + -4 * Joueur exécutant.upgrades[5] || Dans la ligne de vue(
 			Position des yeux(Élément de tableau actuel), Joueur exécutant + Haut, Les barrières ne bloquent pas la ligne de vue)
 			== Faux));
-		Passer si(Joueur exécutant.active_beam_type != 2, 2);
+		Passer si(Joueur exécutant.activeBeam != 2, 2);
 		Message en petit(Tous les joueurs(Équipe 1), Chaîne personnalisée("{0} was caught stealing from {1}'s stash.", Joueur exécutant,
 			Joueur exécutant.stealing_from));
 		Passer(1);
 		Message en petit(Tous les joueurs(Équipe 1), Chaîne personnalisée("{0} was caught selling goods on the black market.",
 			Joueur exécutant));
 		Joueur exécutant.message_cooldown = Temps total écoulé + 3;
-		Joueur exécutant.loyalty_hidden -= Joueur exécutant.stealing_modifier * (20 + (Joueur exécutant.active_beam_type == 2) * 20);
+		Joueur exécutant.loyalty_hidden -= Joueur exécutant.stealing_modifier * (20 + (Joueur exécutant.activeBeam == 2) * 20);
 		Joueur exécutant.sound_position = Vecteur(0, 1000, 0);
-		Passer si(Joueur exécutant.active_beam_type == Faux, 2);
+		Passer si(Joueur exécutant.activeBeam == Faux, 2);
 		Joueur exécutant.who_can_see_harvest_beam = Non applicable;
 		Joueur exécutant.who_can_see_dispense_beam = Non applicable;
-		Joueur exécutant.active_beam_type = Faux;
+		Joueur exécutant.activeBeam = Faux;
 		Joueur exécutant.is_stealing = Faux;
 		temp_2 = 10 - (Joueur exécutant.loyalty_rank < 0) * Joueur exécutant.loyalty_rank;
 		Joueur exécutant.beam_check_cooldown = Temps total écoulé + temp_2;
