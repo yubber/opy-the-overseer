@@ -77,7 +77,7 @@ rule "global init"
 		spawn_center = Vecteur(146.990, 6, 251.050);
 		defaultVect = Vecteur(139, 5.500, -283);
 
-		patrollerNo = createWorkshopSetting(int[0:9], "")
+		patrollerNo = createWorkshopSetting(int[1:9], "difficulty", "number of patrolling orisas", 6, 0)
 
 		### deposits
 		for i_init in range(DepositNo):
@@ -692,56 +692,6 @@ règle("Update Loyalty Rank")
 	}
 }
 
-règle("You Shall Not Touch the Overseer")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 1;
-		Tout;
-	}
-
-	conditions
-	{
-		Distance entre(Joueur exécutant, overseerPos + Bas) <= 3;
-	}
-
-	actions
-	{
-		Interrompre si(Joueur exécutant.message_cooldown > Temps total écoulé);
-		Joueur exécutant.message_cooldown = Temps total écoulé + 3;
-		Passer si(Joueur exécutant.loyalty_rank >= 20, 3);
-		Tuer(Joueur exécutant, Non applicable);
-		Message en petit(Joueur exécutant, Chaîne personnalisée("Only those who are truly loyal may approach the Overseer."));
-		Interrompre;
-		Message en petit(Joueur exécutant, Chaîne personnalisée("You are truly loyal"));
-	}
-}
-
-règle("Player Died")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 1;
-		Tout;
-	}
-
-	conditions
-	{
-		Points de vie(Joueur exécutant) == Faux;
-	}
-
-	actions
-	{
-		Attente(3, Ignorer la condition);
-		Boucle si(Joueur exécutant.previous_stash_position == 0);
-		Téléportation(Joueur exécutant, Joueur exécutant.previous_stash_position);
-		Définir un statut(Joueur exécutant, Non applicable, Invincible, 3);
-		Ressusciter(Joueur exécutant);
-	}
-}
-
 règle("Sprint")
 {
 	évènement
@@ -1205,77 +1155,8 @@ règle("Tech Guy Spawned")
 		Désactiver la réapparition prédéfinie par le mode de jeu(Joueur exécutant);
 		Regarder vers(Joueur exécutant, Direction(Joueur exécutant, Joueur exécutant.NPC_facing_target), 100, Au monde,
 			Direction et Taux de rotation);
-		Créer du texte en jeu(Tous les joueurs(Équipe 1), Chaîne personnalisée("{0} Technician", Chaîne d’icône(Boulon)), Joueur exécutant,
+	actions{	Créer du texte en jeu(Tous les joueurs(Équipe 1), Chaîne personnalisée("{0} Technician", Chaîne d’icône(Boulon)), Joueur exécutant,
 			1.250, Masquer derrière les surfaces, Visible pour Position et Chaîne de texte, Couleur(Blanc), Visibilité par défaut);
-	}
-}
-
-règle("Black Marketeer Spawned")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 2;
-		Torbjörn;
-	}
-
-	conditions
-	{
-		Apparition(Joueur exécutant) == Vrai;
-	}
-
-	actions
-	{
-		Désactiver la réapparition prédéfinie par le mode de jeu(Joueur exécutant);
-		Regarder vers(Joueur exécutant, Direction(Joueur exécutant, Joueur exécutant.NPC_facing_target), 100, Au monde,
-			Direction et Taux de rotation);
-		Créer du texte en jeu(Tous les joueurs(Équipe 1), Chaîne personnalisée("{0} Black Marketeer", Chaîne d’icône(Crâne)),
-			Joueur exécutant, 1.250, Masquer derrière les surfaces, Visible pour Position et Chaîne de texte, Couleur(Blanc),
-			Visibilité par défaut);
-	}
-}
-
-règle("Tech Guy: Facing Target")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 2;
-		Chacal;
-	}
-
-	actions
-	{
-		Joueur exécutant.NPC_facing_target = Premier de(Tableau trié(Tableau filtré(Tous les joueurs(Équipe 1), Dans la ligne de vue(
-			Position des yeux(Joueur exécutant), Élément de tableau actuel + Haut, Les barrières ne bloquent pas la ligne de vue)),
-			Distance entre(Élément de tableau actuel, Joueur exécutant)));
-		Passer si(Contenu du tableau(Tous les joueurs(Équipe 1), Joueur exécutant.NPC_facing_target), 1);
-		Joueur exécutant.NPC_facing_target = Premier de(Tableau trié(Tous les joueurs(Équipe 1), Distance entre(Élément de tableau actuel,
-			Joueur exécutant)));
-		Attente(1, Ignorer la condition);
-		Boucle;
-	}
-}
-
-règle("Black Marketeer: Facing Target")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 2;
-		Torbjörn;
-	}
-
-	actions
-	{
-		Joueur exécutant.NPC_facing_target = Premier de(Tableau trié(Tableau filtré(Tous les joueurs(Équipe 1), Dans la ligne de vue(
-			Position des yeux(Joueur exécutant), Élément de tableau actuel + Haut, Les barrières ne bloquent pas la ligne de vue)),
-			Distance entre(Élément de tableau actuel, Joueur exécutant)));
-		Passer si(Contenu du tableau(Tous les joueurs(Équipe 1), Joueur exécutant.NPC_facing_target), 1);
-		Joueur exécutant.NPC_facing_target = Premier de(Tableau trié(Tous les joueurs(Équipe 1), Distance entre(Élément de tableau actuel,
-			Joueur exécutant)));
-		Attente(1, Ignorer la condition);
-		Boucle;
 	}
 }
 
@@ -1415,62 +1296,6 @@ règle("Update Player Prices And Add Interest")
 	}
 }
 
-règle("Voiceline Penalty")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 1;
-		Tout;
-	}
-
-	conditions
-	{
-		Communication par réplique(Joueur exécutant) == Vrai;
-		Joueur exécutant.spam_check <= Temps total écoulé;
-	}
-
-	actions
-	{
-		Joueur exécutant.spam_check = Temps total écoulé + 1;
-		Joueur exécutant.spam_counter += 3;
-		Interrompre si(Joueur exécutant.spam_counter < 30);
-		Message en petit(Joueur exécutant, Chaîne personnalisée("The Overseer does not condone ignominious banter."));
-		Joueur exécutant.is_stealing = Vrai;
-		Joueur exécutant.message_cooldown = Temps total écoulé + 3;
-	}
-}
-
-règle("AI Spawned")
-{
-	évènement
-	{
-		Toute la partie - Chaque joueur;
-		Équipe 2;
-		Orisa;
-	}
-
-	conditions
-	{
-		Apparition(Joueur exécutant) == Vrai;
-	}
-
-	actions
-	{
-		Désactiver la réapparition prédéfinie par le mode de jeu(Joueur exécutant);
-		Définir un statut(Joueur exécutant, Non applicable, Invincible, 9999);
-		Joueur exécutant.AI_previous_position = Vecteur(45.120, -23.900, 15.140);
-		Joueur exécutant.AI_current_angle = Angle horizontal depuis une direction(Regard en direction de(Joueur exécutant));
-		Joueur exécutant.AI_move_direction = Direction depuis des angles(Joueur exécutant.AI_current_angle, 0);
-		Commencer l’accélération directionnelle(Joueur exécutant, Joueur exécutant.AI_move_direction, 0.500, Au monde,
-			Remplacer l’accélération existante, Direction et ampleur);
-		Regarder vers(Joueur exécutant, Direction(Position des yeux(Joueur exécutant), Joueur exécutant.AI_facing_target + Haut), 360,
-			Au monde, Direction et Taux de rotation);
-		Joueur exécutant.AI_cooldown = Vrai;
-		Joueur exécutant.AI_facing_target = Joueur exécutant + Joueur exécutant.AI_move_direction * 100;
-	}
-}
-
 règle("AI Movement")
 {
 	évènement
@@ -1491,7 +1316,7 @@ règle("AI Movement")
 	{
 		Passer si(Distance entre(Joueur exécutant, Vecteur(159.430, 11.530, 263.440)) > 2.250, 3);
 		Jouer un effet(Tous les joueurs(Équipe 1), Bon effet de ramassage, Couleur(Jaune), Position de(Joueur exécutant), 1);
-		Téléportation(Joueur exécutant, overseerPos);
+		}	Téléportation(Joueur exécutant, overseerPos);
 		Jouer un effet(Tous les joueurs(Équipe 1), Bon effet de ramassage, Couleur(Jaune), overseerPos, 1);
 		Joueur exécutant.update_facing_target_command = Vrai;
 		Passer si(Distance entre(Joueur exécutant.AI_facing_target, Joueur exécutant) <= 5 || Contenu du tableau(Tous les joueurs(

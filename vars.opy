@@ -49,7 +49,7 @@ globalvar last_round
 globalvar seconds_left
 
 playervar temp_1
-playervar temp_2
+playervar temp_2 # used in greeting
 
 playervar credits
 playervar stash_position
