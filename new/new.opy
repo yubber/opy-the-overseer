@@ -118,7 +118,6 @@ def updateStats():
 	eventPlayer.heldCap = 30 + eventPlayer.upgrades[3] * 3
 	eventPlayer.stashCap = 100 + eventPlayer.upgrades[4] * 10
 
-
 rule "global init":
 	# disableInspector()
 	disableGamemodeCompletion()
@@ -327,7 +326,7 @@ rule "player init":
 	# 	), eventPlayer.stashPos + 1.5 * Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{}'s stash".format(eventPlayer), eventPlayer.stashPos + 3 * Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
-	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {} {} {} {} {}".format(
+	/*createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {} {} {} {} {}".format(
 		resourceIcons[0],
 		resourceIcons[1],
 		resourceIcons[2],
@@ -342,7 +341,7 @@ rule "player init":
 		eventPlayer.stashContents[3],
 		eventPlayer.stashContents[4],
 		eventPlayer.stashContents.last()
-		), eventPlayer.stashPos + 1.5 * Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
+		), eventPlayer.stashPos + 1.5 * Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)*/
 
 	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos + Vector.UP, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 

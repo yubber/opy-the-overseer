@@ -95,7 +95,11 @@ playervar takeRange
 playervar putRange
 
 enum UPGRADES:
-	
+	TAKE,
+	PUT,
+	MOVE,
+	HOLD,
+	STASH
 
 playervar upgrades
 
