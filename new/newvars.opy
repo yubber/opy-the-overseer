@@ -69,6 +69,7 @@ globalvar orisaQuips = [
 ]
 
 globalvar i_init
+# used in npc repos
 globalvar global_temp_1
 globalvar global_temp_2
 
@@ -79,16 +80,24 @@ globalvar global_temp_2
 ### resources
 playervar heldContents = [0 for x in resourceNames]
 playervar stashContents = eventPlayer.heldContents
-playervar holdCap
+playervar heldCap
 playervar stashCap
+playervar money
 
-playervar stashPos
+playervar stashPos # used for npc bonking
 playervar oldStashPos
-playervar carryingStash
+playervar isCarryingStash
 
 playervar resourceSel
+
+# upgrades
 playervar takeRange
 playervar putRange
+
+enum UPGRADES:
+	
+
+playervar upgrades
 
 enum BEAMS:
 	OFF = -1,
@@ -96,9 +105,23 @@ enum BEAMS:
 	PUT
 
 playervar beamTarget
+
+enum TARGETS:
+	NONE = -1,
+	DEPOSIT,
+	OVERSEER,
+	STASH,
+	MARKET
+
+playervar targetType
+playervar targetPos
+playervar targetIndex
+playervar beamPrompt
+playervar targets
 playervar activeBeam
 playervar beamCheckCd
 
+playervar naughty
 playervar stealingMod
 playervar interest
 playervar loyalty
@@ -111,5 +134,6 @@ playervar aiMoveDir
 playervar aiFaceTarget
 playervar aiOldPos
 
+# players: used in finding initial spawn pos
 playervar temp_1
 playervar temp_2
