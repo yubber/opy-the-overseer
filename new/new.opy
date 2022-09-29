@@ -53,7 +53,9 @@ settings {
 
 /*todo
 - move hud to not overlap with small message
-*/
+	- stash contents below held?
+- effect vis???
+- hud gauge*/
 
 #!extension beamSounds
 #!extension playMoreEffects
@@ -127,15 +129,16 @@ rule "global init":
 		depositPos[i_init] = null
 		depositDespawn[i_init] = 130
 		wait()
-		createEffect(getAllPlayers(), Effect.ORB, evalOnce(resourceColors[i_init % ResourceNo]), depositPos[evalOnce(i_init % ResourceNo)],
+		createEffect(localPlayer, Effect.ORB, resourceColors[i_init % ResourceNo],
+			depositPos[evalOnce(i_init)],
 			0.5, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-		createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, resourceColors[evalOnce(i_init % ResourceNo)], depositPos[evalOnce(i_init % ResourceNo)] + Vector.DOWN * 15,
-			0.5 + 0.002 * depositAmts[evalOnce(i_init % ResourceNo)] / 10, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+		createEffect(localPlayer, Effect.LIGHT_SHAFT, resourceColors[evalOnce(i_init % ResourceNo)], depositPos[evalOnce(i_init)] + Vector.DOWN * 15,
+			0.5 + 0.002 * depositAmts[evalOnce(i_init)] / 10, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 		wait()
-		# createInWorldText(getAllPlayers(), "{} {}: {}".format(evalOnce(resourceIcons[i_init % ResourceNo]), evalOnce(resourceNames[i_init % ResourceNo]), floor(depositAmts[evalOnce(i_init % ResourceNo)])),
-		# 	depositPos[evalOnce(i_init % ResourceNo)] + 1.5 * Vector.UP, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
-		createInWorldText(getAllPlayers(), "{} {}: {}".format(resourceIcons[evalOnce(i_init % ResourceNo)], resourceNames[evalOnce(i_init % ResourceNo)], floor(depositAmts[evalOnce(i_init % ResourceNo)])),
-			depositPos[evalOnce(i_init % ResourceNo)] + 0.5 * Vector.UP, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+		# createInWorldText(localPlayer, "{} {}: {}".format(evalOnce(resourceIcons[i_init % ResourceNo]), evalOnce(resourceNames[i_init % ResourceNo]), floor(depositAmts[evalOnce(i_init)])),
+		# 	depositPos[evalOnce(i_init)] + 1.5 * Vector.UP, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+		createInWorldText(localPlayer, "{} {}: {}".format(resourceIcons[evalOnce(i_init % ResourceNo)], resourceNames[evalOnce(i_init % ResourceNo)], floor(depositAmts[evalOnce(i_init)])),
+			depositPos[evalOnce(i_init)] + 0.5 * Vector.UP, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 		wait(0.048)
 
 	### rarities
@@ -205,7 +208,7 @@ rule "global init":
 	createInWorldText(getLivingPlayers(Team.ALL), "\&black_square;",
 		updateEveryTick(localPlayer.getEyePosition() + 100 * ((-0.75 + localPlayer.resourceSel * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
 		(-0.6 /*+ 0.03 * sin(2*getTotalTimeElapsed())*/ - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-		3 * localPlayer.getFacingDirection())), 14, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_COLOR, resourceColors[localPlayer.resourceSel], SpecVisibility.NEVER)
+		3 * localPlayer.getFacingDirection())), 50, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_COLOR, resourceColors[localPlayer.resourceSel], SpecVisibility.NEVER)
 
 	for i_init in range(ResourceNo):
 		# createInWorldText(localPlayer, header, pos, scale, clip, reeval, color, specvis)
@@ -565,22 +568,28 @@ rule "take":
 					break
 
 			eventPlayer.heldContents[eventPlayer.resourceSel] += eventPlayer.moveAmt
-		wait(0.992)
+		wait(0.096)
 	while RULE_CONDITION
 
 rule "beam off cleanup":
 	@Event eachPlayer
-	@Condition eventPlayer.beamTarget == null
+	@Condition eventPlayer.beamTarget == null \
+	or (not eventPlayer.isHoldingButton(Button.PRIMARY_FIRE)) and eventPlayer.beamType == BEAMS.TAKE \
+	or (not eventPlayer.isHoldingButton(Button.SECONDARY_FIRE)) and eventPlayer.beamType == BEAMS.PUT \
+	or eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN)
+	eventPlayer.beamTarget = null
 	eventPlayer.naughty = false
 	eventPlayer.beamType = BEAMS.OFF
 
 ### deposits
 rule "deposit tp debug":
 	@Event eachPlayer
-	@Condition hostPlayer.isHoldingButton(Button.MELEE)
-	hostPlayer.teleport(depositPos[hostPlayer.aiFaceTarget])
-	hostPlayer.aiFaceTarget += 1
-	hostPlayer.aiFaceTarget %= DepositNo
+	@Condition eventPlayer.isHoldingButton(Button.MELEE)
+	eventPlayer.teleport(depositPos[eventPlayer.aiFaceTarget])
+	eventPlayer.aiFaceTarget += 1
+	eventPlayer.aiFaceTarget %= DepositNo
+	smallMessage(eventPlayer, "{} entities | {}".format(getNumberOfEntityIds(), eventPlayer.aiFaceTarget))
+	wait(1)
 
 rule "spawn deposits":
 	# if empty, inited or time to despawn
