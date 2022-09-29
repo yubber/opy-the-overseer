@@ -3,6 +3,7 @@
 # total number of deposits
 #!define DepositNo 12
 #!define ResourceNo 6
+#!define ResourceScalar 1
 
 # global temp values
 #!define NPCRepos_1 techNPC.temp_1
@@ -19,8 +20,9 @@
 #!define orisaRaycastBlackMagic if (raycast(eventPlayer + vect(0, 2.5, 0) + eventPlayer.aiMoveDir * 2, eventPlayer + vect(0, -10, 0) + eventPlayer.aiMoveDir * 2, null, null, false).getHitPosition()).y >= eventPlayer.getPosition().y + -2.5 and isInLoS(eventPlayer + Vector.UP, Vector.UP + (raycast(eventPlayer + vect(0, 2.5, 0) + eventPlayer.aiMoveDir * 4, eventPlayer + vect(0, -10, 0) + eventPlayer.aiMoveDir * 4, null, null, false).getHitPosition()), BarrierLos.PASS_THROUGH_BARRIERS): continue
 #!define SpaceSpam "\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;"
 
-#!define BeamOnPlayer eventPlayer + worldVector(vect(-0.225, 1.82, 0), eventPlayer, Transform.ROTATION_AND_TRANSLATION)
-#!define BeamOnTarget eventPlayer.targetPos + Vector.UP
+#!define BeamOnPlayer eventPlayer
+# eventPlayer + worldVector(vect(-0.225, 1.82, 0), eventPlayer, Transform.ROTATION)
+#!define BeamOnTarget eventPlayer.beamTarget
 
 ##########
 # GLOBAL #
@@ -53,7 +55,7 @@ globalvar resourceIcons = [
 ]
 globalvar resourceColors = [
 	Color.SKY_BLUE,
-	Color.LIME_GREEN,
+	Color.GREEN,
 	Color.YELLOW,
 	Color.ORANGE,
 	Color.GRAY,
@@ -135,8 +137,13 @@ enum BEAMS:
 	TAKE,
 	PUT
 
+playervar beamType
+
 # currently active beam so player can turn away
 playervar beamTarget
+playervar beamTargetType
+playervar beamTargetIndex
+playervar moveAmt
 
 enum TARGETS:
 	NONE = -1,
@@ -151,8 +158,6 @@ playervar targetPos
 playervar targetIndex
 playervar beamPrompt
 playervar targets
-playervar activeBeam
-playervar beamCheckCd
 
 playervar naughty
 playervar stealingMod
