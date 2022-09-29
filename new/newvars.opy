@@ -1,4 +1,27 @@
 #!mainFile "new.opy"
+
+# total number of deposits
+#!define DepositNo 12
+#!define ResourceNo 6
+
+# global temp values
+#!define NPCRepos_1 techNPC.temp_1
+#!define NPCRepos_2 techNPC.temp_2
+
+#!define Gltemp1 global_temp_1
+#!define Gltemp2 global_temp_2
+
+#!define humanPlayers getAllPlayers()
+# since target index will never exceed last player slot, optimized out
+# [gamer for gamer in getAllPlayers() if not gamer.isDummy()]
+#!define PlayerSlots 8
+
+#!define orisaRaycastBlackMagic if (raycast(eventPlayer + vect(0, 2.5, 0) + eventPlayer.aiMoveDir * 2, eventPlayer + vect(0, -10, 0) + eventPlayer.aiMoveDir * 2, null, null, false).getHitPosition()).y >= eventPlayer.getPosition().y + -2.5 and isInLoS(eventPlayer + Vector.UP, Vector.UP + (raycast(eventPlayer + vect(0, 2.5, 0) + eventPlayer.aiMoveDir * 4, eventPlayer + vect(0, -10, 0) + eventPlayer.aiMoveDir * 4, null, null, false).getHitPosition()), BarrierLos.PASS_THROUGH_BARRIERS): continue
+#!define SpaceSpam "\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;"
+
+#!define BeamOnPlayer eventPlayer + worldVector(vect(-0.225, 1.82, 0), eventPlayer, Transform.ROTATION_AND_TRANSLATION)
+#!define BeamOnTarget eventPlayer.targetPos + Vector.UP
+
 ##########
 # GLOBAL #
 ##########
@@ -36,6 +59,8 @@ globalvar resourceColors = [
 	Color.GRAY,
 	Color.ROSE
 ]
+
+globalvar allTargets
 
 # deposits
 globalvar depositPos
@@ -92,7 +117,9 @@ playervar resourceSel
 
 # upgrades
 playervar takeRange
+playervar takeSpeed
 playervar putRange
+playervar putSpeed
 
 enum UPGRADES:
 	TAKE,
@@ -101,7 +128,7 @@ enum UPGRADES:
 	HOLD,
 	STASH
 
-playervar upgrades
+playervar upgrades = [0, 0, 0, 0, 0]
 
 enum BEAMS:
 	OFF = -1,
