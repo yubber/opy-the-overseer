@@ -109,6 +109,14 @@ rule "global init":
 
 	patrollerNo = createWorkshopSetting(int[1:9], "difficulty", "number of patrolling orisas", 6, 0)
 
+	### overseer
+	overseerColor = random.choice([Color.BLUE, Color.YELLOW])
+	createEffect(getAllPlayers(), Effect.CLOUD, overseerColor, overseerPos + Vector.UP, 3, EffectReeval.VISIBILITY)
+	createEffect(getAllPlayers(), Effect.GOOD_AURA, overseerColor, overseerPos + Vector.UP, 3 + 0.5 * sinDeg(getTotalTimeElapsed()), EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+
+	createIcon(getAllPlayers(), overseerPos + Vector.UP, Icon.EYE, IconReeval.VISIBILITY, overseerColor, false)
+	createInWorldText(getAllPlayers(), "THE OVERSEER", overseerPos, 1.75, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
+	wait()
 	### deposits
 	for i_init in range(DepositNo):
 		depositAmts[i_init] = null
@@ -119,20 +127,12 @@ rule "global init":
 			0.5, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 		createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, resourceColors[evalOnce(i_init % ResourceNo)], depositPos[evalOnce(i_init % ResourceNo)] + Vector.DOWN * 15,
 			0.5 + 0.002 * depositAmts[evalOnce(i_init % ResourceNo)] / 10, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-
+		wait()
 		# createInWorldText(getAllPlayers(), "{} {}: {}".format(evalOnce(resourceIcons[i_init % ResourceNo]), evalOnce(resourceNames[i_init % ResourceNo]), floor(depositAmts[evalOnce(i_init % ResourceNo)])),
 		# 	depositPos[evalOnce(i_init % ResourceNo)] + 1.5 * Vector.UP, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 		createInWorldText(getAllPlayers(), "{} {}: {}".format(resourceIcons[evalOnce(i_init % ResourceNo)], resourceNames[evalOnce(i_init % ResourceNo)], floor(depositAmts[evalOnce(i_init % ResourceNo)])),
 			depositPos[evalOnce(i_init % ResourceNo)] + 0.5 * Vector.UP, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
-		wait()
-
-	### overseer
-	overseerColor = random.choice([Color.BLUE, Color.YELLOW])
-	createEffect(getAllPlayers(), Effect.CLOUD, overseerColor, overseerPos + Vector.UP, 3, EffectReeval.VISIBILITY)
-	createEffect(getAllPlayers(), Effect.GOOD_AURA, overseerColor, overseerPos + Vector.UP, 3 + 0.5 * sinDeg(getTotalTimeElapsed()), EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-
-	createIcon(getAllPlayers(), overseerPos + Vector.UP, Icon.EYE, IconReeval.VISIBILITY, overseerColor, false)
-	createInWorldText(getAllPlayers(), "THE OVERSEER", overseerPos, 1.75, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
+		wait(0.048)
 
 	### rarities
 	i_init = 16
@@ -198,33 +198,41 @@ rule "global init":
 	# 	"{} / {}".format(localPlayer.heldContents[localPlayer.resourceSel], localPlayer.heldCap),
 	# 	HudPosition.TOP, 2.3, resourceColors[localPlayer.resourceSel], Color.WHITE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
 
-	createInWorldText(localPlayer, "\&down_black_triangle;",
-		updateEveryTick(-0.3 + localPlayer.resourceSel * 0.1 * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
-		(-0.6 + 0.05 * sin(getTotalTimeElapsed()) - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-		3 * localPlayer.getFacingDirection()), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.NEVER)
+	createInWorldText(localPlayer, "\&white_square;",
+		updateEveryTick(localPlayer.getEyePosition() + 100 * ((-0.75 + localPlayer.resourceSel * 0.2) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
+		(-0.5 /*+ 0.03 * sin(2*getTotalTimeElapsed())*/ - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
+		3 * localPlayer.getFacingDirection())), 4, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_COLOR, resourceColors[localPlayer.resourceSel], SpecVisibility.NEVER)
 
 	for i_init in range(ResourceNo):
 		# createInWorldText(localPlayer, header, pos, scale, clip, reeval, color, specvis)
 		# big icons
 		createInWorldText(localPlayer if localPlayer.resourceSel == evalOnce(i_init) else [], resourceIcons[evalOnce(i_init)],
-			updateEveryTick(evalOnce(-0.3 + i_init * 0.1) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
-			(-1 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-			3 * localPlayer.getFacingDirection()), 2.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.NEVER)
+			updateEveryTick(
+			localPlayer.getEyePosition() + 100 * (
+			evalOnce(-0.75 + i_init * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
+			(-0.6 - 0.2) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
+			3 * localPlayer.getFacingDirection())), 3.6, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.NEVER)
 		# small icons | -2.5 -1.5 -0.5 0.5 1.5 2.5
 		createInWorldText(localPlayer if localPlayer.resourceSel != evalOnce(i_init) else [], resourceIcons[evalOnce(i_init)],
-			updateEveryTick(evalOnce(-0.25 + i_init * 0.1) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
-			(-1 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-			3 * localPlayer.getFacingDirection()), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.NEVER)
+			updateEveryTick(
+			localPlayer.getEyePosition() + 100 * (
+			evalOnce(-0.75 + i_init * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
+			(-0.6 - 0.2) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
+			3 * localPlayer.getFacingDirection())), 2.4, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.NEVER)
 		# held no
 		createInWorldText(localPlayer, localPlayer.heldContents[evalOnce(i_init)],
-			updateEveryTick(evalOnce(-0.25 + i_init * 0.1) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
-			(-1 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-			3 * localPlayer.getFacingDirection()), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.NEVER)
+			updateEveryTick(
+			localPlayer.getEyePosition() + 100 * (
+			evalOnce(-0.75 + i_init * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
+			(-0.8 - 0.2) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
+			3 * localPlayer.getFacingDirection())), 2.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
 
 	createInWorldText(localPlayer, "[{}] \&left_black_triangle; "SpaceSpam" \&right_black_triangle; [{}]".format(buttonString(Button.ULTIMATE), buttonString(Button.ABILITY_2)),
-		updateEveryTick(/*evalOnce(-0.35) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +*/
-		(-1 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-		3 * localPlayer.getFacingDirection()), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
+		updateEveryTick(
+		localPlayer.getEyePosition() + 100 * (
+		/*(-0.75 + localPlayer.resourceSel * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +*/
+		(-0.75 - 0.2) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
+		3 * localPlayer.getFacingDirection())), 3, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
 
 	createProgressBarInWorldText(localPlayer,
 		localPlayer.heldContents[localPlayer.resourceSel] / localPlayer.heldCap * 100,
@@ -232,8 +240,8 @@ rule "global init":
 		updateEveryTick(
 			localPlayer.getEyePosition() + 100 * (
 			/* 0 * World Vector Of(Right, Local Player, Rotation) + */
-			(-1.2 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-			3 * localPlayer.getFacingDirection())), 2, Clip.NONE, resourceColors[localPlayer.resourceSel], Color.WHITE, ProgressWorldTextReeval.VISIBILITY_POSITION_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
+			(-1 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
+			3 * localPlayer.getFacingDirection())), 1.6, Clip.NONE, resourceColors[localPlayer.resourceSel], Color.WHITE, ProgressWorldTextReeval.VISIBILITY_POSITION_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
 
 	# lol. lmao
 	# IF ANYONE NEEDS THE SOURCE OVERPY CODE FOR THIS PLESE CONTACT yubber1337@gmail.com I KNOW HOW IT FEELS
@@ -242,11 +250,11 @@ rule "global init":
 			"can't carry any more" if localPlayer.heldCap <= localPlayer.heldContents[localPlayer.targetIndex % ResourceNo] \
 				else ("too far to take" if localPlayer.takeRange < distance(localPlayer, localPlayer.targetPos) else "[{}] - take".format(buttonString(Button.PRIMARY_FIRE)))
 		) if localPlayer.targetType == TARGETS.DEPOSIT else (
-			"you don't have {} {}".format(resourceIcons[localPlayer.resourceSel], resourceNames[localPlayer.resourceSel]) if localPlayer.heldContents[localPlayer.resourceSel] <= 0 \
+			"no {} {} to sell".format(resourceIcons[localPlayer.resourceSel], resourceNames[localPlayer.resourceSel]) if localPlayer.heldContents[localPlayer.resourceSel] <= 0 \
 			else ("too far to sell" if distance(localPlayer, localPlayer.targetPos) > localPlayer.putRange \
 			else "[{}] - sell {} {} (crime)".format(buttonString(Button.SECONDARY_FIRE), resourceIcons[localPlayer.resourceSel], resourceNames[localPlayer.resourceSel]))
 		) if localPlayer.targetType == TARGETS.MARKET else (
-			"you don't have {} {}".format(resourceIcons[overseerWants], resourceNames[overseerWants]) if localPlayer.heldContents[overseerWants] <= 0 \
+			"no {} {} to exchange".format(resourceIcons[overseerWants], resourceNames[overseerWants]) if localPlayer.heldContents[overseerWants] <= 0 \
 			else ("too far to exchange {} {}".format(resourceIcons[overseerWants], resourceNames[overseerWants]) if distance(localPlayer, localPlayer.targetPos) > localPlayer.putRange \
 			else "[{}] - exchange {} {}".format(buttonString(Button.SECONDARY_FIRE), resourceIcons[overseerWants], resourceNames[overseerWants]))
 		) if localPlayer.targetType == TARGETS.OVERSEER else (
@@ -269,7 +277,7 @@ rule "global init":
 				)
 			)
 		) if localPlayer.targetType == TARGETS.STASH else "",
-		localPlayer.targetPos, 1.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT
+		localPlayer.targetPos - Vector.UP, 1.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT
 	) # header, pos, scale, clip, reeval, color, specvis
 
 rule "player spawn pos?":
@@ -330,13 +338,13 @@ rule "player init":
 		resourceIcons[0], resourceNames[0], eventPlayer.stashContents[0],
 		resourceIcons[1], resourceNames[1], eventPlayer.stashContents[1],
 		resourceIcons[2], resourceNames[2], eventPlayer.stashContents[2]
-		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * (-2 + -0.05 * distance(localPlayer, eventPlayer.stashPos)),
+		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(2, (-0.1 * distance(localPlayer, eventPlayer.stashPos))),
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}\n{} {}: {}\n{} {}: {}".format(
 		resourceIcons[3], resourceNames[3], eventPlayer.stashContents[3],
 		resourceIcons[4], resourceNames[4], eventPlayer.stashContents[4],
 		resourceIcons.last(), resourceNames.last(), eventPlayer.stashContents.last()
-		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * (2 + 0.05 * distance(localPlayer, eventPlayer.stashPos)),
+		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(2, (0.1 * distance(localPlayer, eventPlayer.stashPos))),
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos + Vector.UP, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
@@ -443,7 +451,7 @@ rule "cycle resource next [e]":
 rule "set targets":
 	while true:
 		# 0...11 | DepositNo = overseer | marketNPC | players } array of positions
-		allTargets = depositPos.concat([overseerPos + Vector.DOWN, marketNPC.getPosition()]).concat([p.stashPos for p in getAllPlayers() if not p.isDummy() and not p.isCarryingStash])
+		allTargets = depositPos.concat([overseerPos, marketNPC.getEyePosition()]).concat([p.stashPos for p in getAllPlayers() if not p.isDummy() and not p.isCarryingStash])
 		wait(0.096)
 
 rule "get player target":
@@ -504,6 +512,13 @@ rule "take":
 	while RULE_CONDITION
 
 ### deposits
+rule "deposit tp debug":
+	@Event eachPlayer
+	@Condition hostPlayer.isMeleeing()
+	hostPlayer.teleport(depositPos[hostPlayer.aiFaceTarget])
+	hostPlayer.aiFaceTarget += 1
+	hostPlayer.aiFaceTarget %= DepositNo
+
 rule "spawn deposits":
 	# if empty, inited or time to despawn
 	while true:
@@ -539,7 +554,7 @@ rule "spawn deposits":
 		i_deposit %= DepositNo
 		wait(0.064)
 
-### bots
+### bots"
 rule "init orisas":
 	@Event eachPlayer
 	@Hero orisa
