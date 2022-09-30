@@ -18,7 +18,10 @@
 #!define PlayerSlots 8
 
 #!define orisaRaycastBlackMagic if (raycast(eventPlayer + vect(0, 2.5, 0) + eventPlayer.aiMoveDir * 2, eventPlayer + vect(0, -10, 0) + eventPlayer.aiMoveDir * 2, null, null, false).getHitPosition()).y >= eventPlayer.getPosition().y + -2.5 and isInLoS(eventPlayer + Vector.UP, Vector.UP + (raycast(eventPlayer + vect(0, 2.5, 0) + eventPlayer.aiMoveDir * 4, eventPlayer + vect(0, -10, 0) + eventPlayer.aiMoveDir * 4, null, null, false).getHitPosition()), BarrierLos.PASS_THROUGH_BARRIERS): continue
-#!define SpaceSpam "\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;"
+#!define SpaceSpam "\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;"
+# spacelite len at 5 for progress bar
+#!define SpaceLite "\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;"
+#!define HudOffset (-0.3)
 
 #!define BeamOnPlayer eventPlayer
 # eventPlayer + worldVector(vect(-0.225, 1.82, 0), eventPlayer, Transform.ROTATION)
