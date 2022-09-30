@@ -21,7 +21,7 @@
 #!define SpaceSpam "\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;"
 # spacelite len at 5 for progress bar
 #!define SpaceLite "\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;"
-#!define HudOffset (-0.3)
+#!define HudOffset (-0.4)
 
 #!define BeamOnPlayer eventPlayer
 # eventPlayer + worldVector(vect(-0.225, 1.82, 0), eventPlayer, Transform.ROTATION)
@@ -119,6 +119,8 @@ playervar oldStashPos
 playervar isCarryingStash
 
 playervar resourceSel
+
+playervar dumpProg
 
 # upgrades
 playervar takeRange

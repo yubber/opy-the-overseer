@@ -66,6 +66,13 @@ settings {
 # idk if need more fx
 #!extension spawnMoreDummyBots
 
+def cleanBeam():
+	eventPlayer.beamTarget = null
+	eventPlayer.beamTargetIndex = -1
+	eventPlayer.beamTargetType = TARGETS.NONE
+	eventPlayer.naughty = false
+	eventPlayer.beamType = BEAMS.OFF
+
 /*def moveNPCs():
 	while true:
 		wait()
@@ -248,9 +255,9 @@ rule "global init":
 		# held bars
 		createInWorldText(getLivingPlayers(Team.ALL),
 			" {}{}{} ".format(
-				"■■■■".substring(0, round(localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5)),
-				"□□□□".substring(0, 5 - round(localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5)),
-				"■" if localPlayer.heldContents[evalOnce(i_init)] == localPlayer.heldCap else "□"),
+				"■■■■".substring(0, min(4,round(localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5))),
+				"□□□□".substring(0, min(4,round(5 - (localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5)))),
+				"■" if localPlayer.heldContents[evalOnce(i_init)] >= localPlayer.heldCap else "□"),
 			updateEveryTick(
 			localPlayer.getEyePosition() + 100 * (
 			evalOnce(-0.75 + i_init * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
@@ -264,6 +271,7 @@ rule "global init":
 		(-0.6 - 0.2 + HudOffset) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
 		3 * localPlayer.getFacingDirection())), 2.5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
 
+	# todo change to held & stash 1, max 1 iwt
 	createInWorldText(getLivingPlayers(Team.ALL), "held"SpaceSpam SpaceLite"max {}".format(localPlayer.heldCap),
 		updateEveryTick(
 		localPlayer.getEyePosition() + 100 * (
@@ -309,7 +317,7 @@ rule "global init":
 				"too far to stash" if distance(localPlayer, localPlayer.targetPos) > localPlayer.putRange \
 				else "[{}] - {} {} {}".format(
 					buttonString(Button.SECONDARY_FIRE),
-					"stash" if humanPlayers[localPlayer.targetIndex] == localPlayer else "donate",
+					"stash" if localPlayer.targetIndex == localPlayer.getSlot() else "donate",
 					resourceIcons[localPlayer.resourceSel], resourceNames[localPlayer.resourceSel]
 				)
 			)
@@ -317,9 +325,10 @@ rule "global init":
 		localPlayer.targetPos - Vector.UP, 1.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER
 	) # header, pos, scale, clip, reeval, color, specvis
 
-	print("target {}".format(hostPlayer.beamTarget))
-	print("type {}".format(hostPlayer.beamTargetType))
+	print("target {}".format(["depo", "overs", "stash", "market"][hostPlayer.beamTarget]))
+	print("type {}".format(["take", "put"][hostPlayer.beamTargetType]))
 	print("index {}".format(hostPlayer.beamTargetIndex))
+	print(getPlayersInSlot(hostPlayer.beamTargetIndex, Team.ALL))
 
 rule "player spawn pos?":
 	@Event eachPlayer
@@ -377,19 +386,19 @@ rule "player init":
 	# stash
 	createIcon(eventPlayer, eventPlayer.stashPos + 3*Vector.UP, Icon.TRASHCAN, IconReeval.POSITION, Color.BLUE, true)
 
-	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{}'s stash".format(eventPlayer), eventPlayer.stashPos + 2.5 * Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
+	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{}'s stash\n{} max per resource".format(eventPlayer, eventPlayer.stashCap), eventPlayer.stashPos + 2.5 * Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}\n{} {}: {}\n{} {}: {}".format(
 		resourceIcons[0], resourceNames[0], eventPlayer.stashContents[0],
 		resourceIcons[1], resourceNames[1], eventPlayer.stashContents[1],
 		resourceIcons[2], resourceNames[2], eventPlayer.stashContents[2]
-		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * (-0.6 -0.15 * distance(localPlayer, eventPlayer.stashPos)), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
-		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
+		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
+		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_COLOR, Color.WHITE, SpecVisibility.DEFAULT)
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}\n{} {}: {}\n{} {}: {}".format(
 		resourceIcons[3], resourceNames[3], eventPlayer.stashContents[3],
 		resourceIcons[4], resourceNames[4], eventPlayer.stashContents[4],
 		resourceIcons.last(), resourceNames.last(), eventPlayer.stashContents.last()
-		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * (0.6 + 0.15 * distance(localPlayer, eventPlayer.stashPos)),
-		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
+		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.6, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
+		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos + Vector.UP, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 
@@ -476,6 +485,20 @@ rule "close & personal with the overseer":
 		smallMessage(eventPlayer, "{} ONLY THE TRULY LOYAL MAY APPROACH THE OVERSEER.".format(iconString(Icon.EYE)))
 
 # resources/*
+rule "dump":
+	@Event eachPlayer
+	@Condition eventPlayer.isHoldingButton(Button.RELOAD)
+	eventPlayer.dumpProg += 5
+	if eventPlayer.dumpProg >= 100:
+		eventPlayer.dumpProg = 0
+		eventPlayer.heldContents = [0 for x in resourceNames]
+		return
+		# eventPlayer.heldContents[eventPlayer.resourceSel] = 0
+	if eventPlayer.isHoldingButton(Button.RELOAD):
+		goto RULE_START
+	else:
+		eventPlayer.dumpProg = 0
+
 rule "cycle resource prev [q]":
 	@Event eachPlayer
 	@Condition eventPlayer.isHoldingButton(Button.ULTIMATE)
@@ -502,7 +525,7 @@ rule "set targets":
 	while true:
 		# 0...11 | DepositNo = overseer | marketNPC | players } array of positions
 		allTargets = depositPos.concat([overseerPos, marketNPC.getEyePosition()]).concat(
-			[getPlayersInSlot(p, Team.ALL).stashPos for p in [0,1,2,3,4,5,6,7] if not getPlayersInSlot(p, Team.ALL).isCarryingStash])
+			[getPlayersInSlot(p, Team.ALL).stashPos + Vector.UP for p in [0,1,2,3,4,5,6,7] if not getPlayersInSlot(p, Team.ALL).isCarryingStash])
 		wait(0.096)
 
 rule "get player target":
@@ -555,7 +578,7 @@ rule "take":
 	do:
 		if eventPlayer.isCarryingStash:
 			smallMessage(eventPlayer, "can't move resources while carrying stash.")
-			eventPlayer.beamTarget = null
+			cleanBeam()
 			return
 		# suck
 		if eventPlayer.beamTarget == null:
@@ -571,7 +594,7 @@ rule "take":
 			lbl_0:
 			# los or distance
 			if not isInLoS(eventPlayer.getEyePosition(), eventPlayer.beamTarget, BarrierLos.PASS_THROUGH_BARRIERS) or distance(eventPlayer, eventPlayer.beamTarget) > eventPlayer.takeRange:
-				eventPlayer.beamTarget = null
+				cleanBeam()
 				return
 
 			# calc take amt to prevent -ve value at source
@@ -584,11 +607,11 @@ rule "take":
 					"stash" if eventPlayer.beamTargetType == TARGETS.STASH else "deposit",
 					resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]
 				))
-				eventPlayer.beamTarget = null
+				cleanBeam()
 				return
 			# if target moved
 			if depositPos[eventPlayer.beamTargetIndex] != eventPlayer.beamTarget:
-				eventPlayer.beamTarget = null
+				cleanBeam()
 				return
 			# switch to deposit resource
 			if eventPlayer.beamTargetType == TARGETS.DEPOSIT:
@@ -599,7 +622,7 @@ rule "take":
 				smallMessage(eventPlayer, "can't carry any more {} {}".format(resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]))
 				eventPlayer.beamTarget = -1 # to retrigger rule
 				wait(0.08)
-				eventPlayer.beamTarget = null
+				cleanBeam()
 				eventPlayer.beamTargetType = TARGETS.NONE
 				return
 
@@ -627,7 +650,7 @@ rule "put":
 	do:
 		if eventPlayer.isCarryingStash:
 			smallMessage(eventPlayer, "can't move resources while carrying stash.")
-			eventPlayer.beamTarget = null
+			cleanBeam()
 			return
 
 		# suck
@@ -644,7 +667,7 @@ rule "put":
 			lbl_0:
 			# los or distance
 			if not isInLoS(eventPlayer.getEyePosition(), eventPlayer.beamTarget, BarrierLos.PASS_THROUGH_BARRIERS) or distance(eventPlayer, eventPlayer.beamTarget) > eventPlayer.takeRange:
-				eventPlayer.beamTarget = null
+				cleanBeam()
 				return
 
 			# switch to deposit resource
@@ -658,13 +681,13 @@ rule "put":
 				smallMessage(eventPlayer, "you don't have any more {} {}.".format(
 					resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]
 				))
-				eventPlayer.beamTarget = null
+				wait()
+				cleanBeam()
 				return
 			# if target moved
 
 			# yoink
 			eventPlayer.beamType = BEAMS.PUT
-			eventPlayer.heldContents[eventPlayer.resourceSel] -= eventPlayer.moveAmt
 			switch eventPlayer.beamTargetType:
 				case TARGETS.OVERSEER:
 					eventPlayer.money += eventPlayer.moveAmt * exchangeRate
@@ -673,9 +696,8 @@ rule "put":
 					# check stash space
 					if getPlayersInSlot(eventPlayer.beamTargetIndex, Team.ALL).stashContents[eventPlayer.resourceSel] >= getPlayersInSlot(eventPlayer.beamTargetIndex, Team.ALL).stashCap:
 						smallMessage(eventPlayer, "stash can't hold any more {} {}".format(resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]))
-						eventPlayer.beamTarget = null
+						cleanBeam()
 						return
-
 					getPlayersInSlot(eventPlayer.beamTargetIndex, Team.ALL).stashContents[eventPlayer.resourceSel] += eventPlayer.moveAmt
 					break
 				case TARGETS.MARKET:
@@ -683,23 +705,17 @@ rule "put":
 					eventPlayer.money += eventPlayer.moveAmt * 1 # todo exchange rate
 					break
 
-			eventPlayer.heldContents[eventPlayer.resourceSel] += eventPlayer.moveAmt
+			eventPlayer.heldContents[eventPlayer.resourceSel] -= eventPlayer.moveAmt
 		wait(0.096)
 	while RULE_CONDITION
 
 rule "beam off cleanup":
 	@Event eachPlayer
-	@Condition eventPlayer.beamTarget == null \
-	or not (eventPlayer.isHoldingButton(Button.PRIMARY_FIRE) or eventPlayer.isHoldingButton(Button.SECONDARY_FIRE)) \
-	or eventPlayer.beamType == BEAMS.OFF \
+	@Condition not (eventPlayer.isHoldingButton(Button.PRIMARY_FIRE) or eventPlayer.isHoldingButton(Button.SECONDARY_FIRE)) \
 	or eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN)
-	wait(0.08)
 	smallMessage(hostPlayer, "cleanup")
-	eventPlayer.beamTarget = null
-	eventPlayer.beamTargetIndex = -1
-	eventPlayer.beamTargetType = TARGETS.NONE
-	eventPlayer.naughty = false
-	eventPlayer.beamType = BEAMS.OFF
+	cleanBeam()
+	# wait(0.16)
 
 ### deposits
 rule "deposit tp debug":
@@ -715,7 +731,7 @@ rule "spawn deposits":
 	# if empty, inited or time to despawn
 	while true:
 		if depositAmts[i_deposit] <= 0 or depositDespawn[i_deposit] <= getTotalTimeElapsed():
-			playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, resourceColors[i_deposit % DepositNo], depositPos[i_deposit], 1)
+			playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, resourceColors[i_deposit % ResourceNo], depositPos[i_deposit], 1)
 
 			[x for x in getAllPlayers() if x.beamTarget == depositPos[i_deposit]].beamTarget = null
 			[x for x in getAllPlayers() if x.targetPos == depositPos[i_deposit]].targetPos = null
