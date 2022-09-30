@@ -203,21 +203,11 @@ rule "global init":
 	### huds
 	hudText(getAllPlayers(), b"\&fullwidth_space; the overseer demands {} {}\&fullwidth_space;".format(resourceIcons[overseerWants], resourceNames[overseerWants]), "", " \n ", HudPosition.TOP, 1, overseerColor, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.ALWAYS)
 	hudSubtext(getAllPlayers(), "${} per 10 units sold\&fullwidth_space;|\&fullwidth_space;{}s to next resource".format(exchangeRate * 10, round(phaseTime)), HudPosition.TOP, 1.1, overseerColor, HudReeval.VISIBILITY_AND_STRING)
-	hudHeader([x for x in getAllPlayers() if x.naughty], b"{} committing crime".format(iconString(Icon.WARNING)), HudPosition.TOP, 1.9, Color.ORANGE, HudReeval.VISIBILITY)
-	hudSubtext([x for x in getAllPlayers() if x.naughty], "orisas and other players can report you.", HudPosition.TOP, 1.95, Color.ORANGE, HudReeval.VISIBILITY)
+	hudHeader([x for x in getAllPlayers() if x.naughty], b"{} committing crime".format(iconString(Icon.WARNING)), HudPosition.TOP, 3, Color.ORANGE, HudReeval.VISIBILITY)
+	hudSubtext([x for x in getAllPlayers() if x.naughty], "orisas and other players can report you.", HudPosition.TOP, 3.1, Color.ORANGE, HudReeval.VISIBILITY)
+	progressBarHud([x for x in getAllPlayers() if x.dumpProg > 0], localPlayer.dumpProg, "[{}] - dumping {} {}".format(buttonString(Button.RELOAD), resourceIcons[localPlayer.resourceSel], resourceNames[localPlayer.resourceSel]), HudPosition.TOP, 7, Color.RED, Color.RED, ProgressHudReeval.VISIBILITY_AND_VALUES, SpecVisibility.DEFAULT)
 
 	### slime rancher
-	# hudSubtext(localPlayer, " \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ", HudPosition.TOP, 2, Color.GRAY, HudReeval.VISIBILITY)
-
-	# hudSubtext(localPlayer, "[{}] {} \&left_black_triangle; {} {} \&right_black_triangle; {} [{}]".format(
-	# 	buttonString(Button.ULTIMATE), (ResourceNo - 1 if localPlayer.resourceSel == 0 else (localPlayer.resourceSel - 1)),
-	# 	resourceIcons[localPlayer.resourceSel], resourceNames[localPlayer.resourceSel],
-	# 	resourceIcons[(localPlayer.resourceSel + 1) % ResourceNo], buttonString(Button.ABILITY_2)
-	# ), HudPosition.TOP, 2.1, Color.WHITE, HudReeval.VISIBILITY_AND_STRING )
-	# progressBarHud(localPlayer, localPlayer.heldContents[localPlayer.resourceSel] / localPlayer.heldCap * 100,
-	# 	"{} / {}".format(localPlayer.heldContents[localPlayer.resourceSel], localPlayer.heldCap),
-	# 	HudPosition.TOP, 2.3, resourceColors[localPlayer.resourceSel], Color.WHITE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
-
 	# crosshair
 	createInWorldText(getLivingPlayers(Team.ALL), "\&white_circle;",
 		updateEveryTick(localPlayer.getEyePosition() + 100 * (
@@ -484,7 +474,7 @@ rule "close & personal with the overseer":
 		kill(eventPlayer, null)
 		smallMessage(eventPlayer, "{} ONLY THE TRULY LOYAL MAY APPROACH THE OVERSEER.".format(iconString(Icon.EYE)))
 
-# resources/*
+# resources
 rule "dump":
 	@Event eachPlayer
 	@Condition eventPlayer.isHoldingButton(Button.RELOAD)
@@ -716,6 +706,12 @@ rule "beam off cleanup":
 	smallMessage(hostPlayer, "cleanup")
 	cleanBeam()
 	# wait(0.16)
+
+rule "interact npc":
+	@Event eachPlayer
+	@Condition eventPlayer.isHoldingButton(Button.INTERACT)
+	if distance(eventPlayer, techNPC) < 3:
+		smallMessage(eventPlayer, "{} {}".format(heroIcon(techNPC.getCurrentHero()), ))
 
 ### deposits
 rule "deposit tp debug":
