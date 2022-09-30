@@ -196,6 +196,8 @@ rule "global init":
 	### huds
 	hudText(getAllPlayers(), b"\&fullwidth_space; the overseer demands {} {}\&fullwidth_space;".format(resourceIcons[overseerWants], resourceNames[overseerWants]), "", " \n ", HudPosition.TOP, 1, overseerColor, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.ALWAYS)
 	hudSubtext(getAllPlayers(), "${} per 10 units sold\&fullwidth_space;|\&fullwidth_space;{}s to next resource".format(exchangeRate * 10, round(phaseTime)), HudPosition.TOP, 1.1, overseerColor, HudReeval.VISIBILITY_AND_STRING)
+	hudHeader([x for x in getAllPlayers() if x.naughty], b"{} committing crime".format(iconString(Icon.WARNING)), HudPosition.TOP, 1.9, Color.ORANGE, HudReeval.VISIBILITY)
+	hudSubtext([x for x in getAllPlayers() if x.naughty], "orisas and other players can report you.", HudPosition.TOP, 1.95, Color.ORANGE, HudReeval.VISIBILITY)
 
 	### slime rancher
 	# hudSubtext(localPlayer, " \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ", HudPosition.TOP, 2, Color.GRAY, HudReeval.VISIBILITY)
@@ -245,7 +247,10 @@ rule "global init":
 			3 * localPlayer.getFacingDirection())), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
 		# held bars
 		createInWorldText(getLivingPlayers(Team.ALL),
-			" {}{} ".format("■■■■■■■■■■".substring(0, localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5), SpaceLite SpaceLite.substring(0, 5 - (localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5))),
+			" {}{}{} ".format(
+				"■■■■".substring(0, round(localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5)),
+				"□□□□".substring(0, 5 - round(localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5)),
+				"■" if localPlayer.heldContents[evalOnce(i_init)] == localPlayer.heldCap else "□"),
 			updateEveryTick(
 			localPlayer.getEyePosition() + 100 * (
 			evalOnce(-0.75 + i_init * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
@@ -377,13 +382,13 @@ rule "player init":
 		resourceIcons[0], resourceNames[0], eventPlayer.stashContents[0],
 		resourceIcons[1], resourceNames[1], eventPlayer.stashContents[1],
 		resourceIcons[2], resourceNames[2], eventPlayer.stashContents[2]
-		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos))),
+		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * (-0.6 -0.15 * distance(localPlayer, eventPlayer.stashPos)), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}\n{} {}: {}\n{} {}: {}".format(
 		resourceIcons[3], resourceNames[3], eventPlayer.stashContents[3],
 		resourceIcons[4], resourceNames[4], eventPlayer.stashContents[4],
 		resourceIcons.last(), resourceNames.last(), eventPlayer.stashContents.last()
-		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.6, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
+		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * (0.6 + 0.15 * distance(localPlayer, eventPlayer.stashPos)),
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos + Vector.UP, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
@@ -497,7 +502,7 @@ rule "set targets":
 	while true:
 		# 0...11 | DepositNo = overseer | marketNPC | players } array of positions
 		allTargets = depositPos.concat([overseerPos, marketNPC.getEyePosition()]).concat(
-			[getPlayersInSlot(p, Team.ALL).stashPos for p in getAllPlayers() if not getPlayersInSlot(p, Team.ALL).isCarryingStash])
+			[getPlayersInSlot(p, Team.ALL).stashPos for p in [0,1,2,3,4,5,6,7] if not getPlayersInSlot(p, Team.ALL).isCarryingStash])
 		wait(0.096)
 
 rule "get player target":
@@ -538,7 +543,7 @@ rule "get player target":
 		elif eventPlayer.targetIndex == DepositNo + 1: # marketer
 			eventPlayer.targetType = TARGETS.MARKET
 		else: # stash
-			eventPlayer.targetIndex -= (DepositNo + 1)
+			eventPlayer.targetIndex -= (DepositNo + 2)
 			eventPlayer.targetType = TARGETS.STASH
 	while RULE_CONDITION
 
@@ -549,13 +554,13 @@ rule "take":
 	@Condition not eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN)
 	do:
 		if eventPlayer.isCarryingStash:
-			smallMessage(eventPlayer, "can't use beam while carrying stash.")
+			smallMessage(eventPlayer, "can't move resources while carrying stash.")
 			eventPlayer.beamTarget = null
 			return
 		# suck
 		if eventPlayer.beamTarget == null:
 			# new target
-			if eventPlayer.targetType != TARGETS.NONE:
+			if eventPlayer.targetType == TARGETS.STASH or eventPlayer.targetType == TARGETS.DEPOSIT:
 				eventPlayer.beamTarget = eventPlayer.targetPos
 				eventPlayer.beamTargetType = eventPlayer.targetType
 				eventPlayer.beamTargetIndex = eventPlayer.targetIndex
@@ -593,8 +598,9 @@ rule "take":
 			if eventPlayer.heldCap <= eventPlayer.heldContents[eventPlayer.resourceSel]:
 				smallMessage(eventPlayer, "can't carry any more {} {}".format(resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]))
 				eventPlayer.beamTarget = -1 # to retrigger rule
-				wait()
+				wait(0.08)
 				eventPlayer.beamTarget = null
+				eventPlayer.beamTargetType = TARGETS.NONE
 				return
 
 			# yoink
@@ -605,6 +611,76 @@ rule "take":
 					break
 				case TARGETS.STASH:
 					getPlayersInSlot(eventPlayer.beamTargetIndex, Team.ALL).stashContents[eventPlayer.resourceSel] -= eventPlayer.moveAmt
+					if eventPlayer.getSlot() != eventPlayer.beamTargetIndex:
+						eventPlayer.naughty = true
+					break
+
+			eventPlayer.heldContents[eventPlayer.resourceSel] += eventPlayer.moveAmt
+		wait(0.096)
+	while RULE_CONDITION
+
+rule "put":
+	@Event eachPlayer
+	@Condition not eventPlayer.isHoldingButton(Button.PRIMARY_FIRE)
+	@Condition eventPlayer.isHoldingButton(Button.SECONDARY_FIRE)
+	@Condition not eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN)
+	do:
+		if eventPlayer.isCarryingStash:
+			smallMessage(eventPlayer, "can't move resources while carrying stash.")
+			eventPlayer.beamTarget = null
+			return
+
+		# suck
+		if eventPlayer.beamTarget == null:
+			# new target
+			if eventPlayer.targetType != TARGETS.NONE and eventPlayer.targetType != TARGETS.DEPOSIT:
+				eventPlayer.beamTarget = eventPlayer.targetPos
+				eventPlayer.beamTargetType = eventPlayer.targetType
+				eventPlayer.beamTargetIndex = eventPlayer.targetIndex
+				goto lbl_0
+			else:
+				return
+		else:
+			lbl_0:
+			# los or distance
+			if not isInLoS(eventPlayer.getEyePosition(), eventPlayer.beamTarget, BarrierLos.PASS_THROUGH_BARRIERS) or distance(eventPlayer, eventPlayer.beamTarget) > eventPlayer.takeRange:
+				eventPlayer.beamTarget = null
+				return
+
+			# switch to deposit resource
+			if eventPlayer.beamTargetType == TARGETS.OVERSEER:
+				eventPlayer.resourceSel = overseerWants
+
+			# calc take amt to prevent -ve value in held
+			eventPlayer.moveAmt = min(eventPlayer.putSpeed / 0.25 * 0.1, eventPlayer.heldContents[eventPlayer.resourceSel])
+
+			if eventPlayer.moveAmt == 0:
+				smallMessage(eventPlayer, "you don't have any more {} {}.".format(
+					resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]
+				))
+				eventPlayer.beamTarget = null
+				return
+			# if target moved
+
+			# yoink
+			eventPlayer.beamType = BEAMS.PUT
+			eventPlayer.heldContents[eventPlayer.resourceSel] -= eventPlayer.moveAmt
+			switch eventPlayer.beamTargetType:
+				case TARGETS.OVERSEER:
+					eventPlayer.money += eventPlayer.moveAmt * exchangeRate
+					break
+				case TARGETS.STASH:
+					# check stash space
+					if getPlayersInSlot(eventPlayer.beamTargetIndex, Team.ALL).stashContents[eventPlayer.resourceSel] >= getPlayersInSlot(eventPlayer.beamTargetIndex, Team.ALL).stashCap:
+						smallMessage(eventPlayer, "stash can't hold any more {} {}".format(resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]))
+						eventPlayer.beamTarget = null
+						return
+
+					getPlayersInSlot(eventPlayer.beamTargetIndex, Team.ALL).stashContents[eventPlayer.resourceSel] += eventPlayer.moveAmt
+					break
+				case TARGETS.MARKET:
+					eventPlayer.naughty = true
+					eventPlayer.money += eventPlayer.moveAmt * 1 # todo exchange rate
 					break
 
 			eventPlayer.heldContents[eventPlayer.resourceSel] += eventPlayer.moveAmt
