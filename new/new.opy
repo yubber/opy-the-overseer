@@ -66,6 +66,9 @@ settings {
 # idk if need more fx
 #!extension spawnMoreDummyBots
 
+def executeBonk(): # technpc old stash pos is player, stashpos is source
+	techNPC.oldStashPos.applyImpulse(directionTowards(techNPC.stashPos, techNPC.oldStashPos) * vect(1,0,1), 10, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
+
 def cleanBeam():
 	eventPlayer.beamTarget = null
 	eventPlayer.beamTargetIndex = -1
@@ -187,7 +190,20 @@ rule "global init":
 	techNPC.startFacing(directionTowards(techNPC.getEyePosition(), techNPC.npcFaceTarget), 100, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
 	createInWorldText(getAllPlayers(), "{0} Technician".format(iconString(Icon.BOLT)), techNPC, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
 	createInWorldText(localPlayer if distance(localPlayer, techNPC) < 3.5 and isInLoS(localPlayer, techNPC, BarrierLos.PASS_THROUGH_BARRIERS) else [],
-		"[{}] - view current offer".format(buttonString(Button.INTERACT)), techNPC + Vector.UP, 1.05, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+		"{} ${}.
+		[{}] - accept".format(
+			heroIcon(techNPC.getCurrentHero()),
+			"i don't have anything you could use at the moment." if localPlayer.upgrades[sellingTech] >= 10 \
+			else "{} ${}".format([
+				"i can offer you a better harvesting beam for",
+				"how about an upgrade to your dispenser beam? it's just",
+				"i'll install some faster robotic legs on you if you give me",
+				"i can expand your mobile storage capacity for only",
+				"i can increase your stash size. only",
+				"this sweet camo tech will help you hide from orisas. it's yours for"
+			][sellingTech], round(localPlayer.upgrades[sellingTech] + 2.5 * (localPlayer.upgrades[sellingTech] ** 2))),
+			buttonString(Button.INTERACT)
+		), techNPC + Vector.UP, 1.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 	wait()
 	marketNPC.startFacing(directionTowards(marketNPC.getEyePosition(), marketNPC.npcFaceTarget), 100, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
 	createInWorldText(getAllPlayers(), "{0} black market trader".format(abilityIconString(Hero.SOMBRA, Button.ABILITY_1)), marketNPC, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
@@ -197,7 +213,7 @@ rule "global init":
 	wait()
 	for i_init in range(patrollerNo):
 		createDummy(Hero.ORISA, Team.ALL, PlayerSlots + 2 + i_init, overseerPos, angleToDirection(random.uniform(0, 359.9), 0))
-		getLastCreatedEntity().startForcingName("patrol unit or-15")
+		getLastCreatedEntity().startForcingName("patrol unit or-{}".format(15 + i_init))
 		wait()
 
 	### huds
@@ -244,10 +260,10 @@ rule "global init":
 			3 * localPlayer.getFacingDirection())), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
 		# held bars
 		createInWorldText(getLivingPlayers(Team.ALL),
-			" {}{}{} ".format(
-				"■■■■".substring(0, min(4,round(localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5))),
-				"□□□□".substring(0, min(4,round(5 - (localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5)))),
-				"■" if localPlayer.heldContents[evalOnce(i_init)] >= localPlayer.heldCap else "□"),
+			" {}{} ".format(
+				"■■■■■".substring(0, (floor(localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5))),
+				"□□□□□".substring(0, (ceil(5 - (localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5))))
+				),# "■" if localPlayer.heldContents[evalOnce(i_init)] >= localPlayer.heldCap else "□"),
 			updateEveryTick(
 			localPlayer.getEyePosition() + 100 * (
 			evalOnce(-0.75 + i_init * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
@@ -312,7 +328,7 @@ rule "global init":
 				)
 			)
 		) if localPlayer.targetType == TARGETS.STASH else "",
-		localPlayer.targetPos - Vector.UP, 1.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER
+		localPlayer.targetPos - Vector.UP * (2 if localPlayer.targetType == TARGETS.STASH else 1), 1.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER
 	) # header, pos, scale, clip, reeval, color, specvis
 
 	print("target {}".format(["depo", "overs", "stash", "market"][hostPlayer.beamTarget]))
@@ -381,13 +397,14 @@ rule "player init":
 		resourceIcons[0], resourceNames[0], eventPlayer.stashContents[0],
 		resourceIcons[1], resourceNames[1], eventPlayer.stashContents[1],
 		resourceIcons[2], resourceNames[2], eventPlayer.stashContents[2]
-		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
-		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_COLOR, Color.WHITE, SpecVisibility.DEFAULT)
+		), eventPlayer.stashPos + 0.75 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
+		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}\n{} {}: {}\n{} {}: {}".format(
 		resourceIcons[3], resourceNames[3], eventPlayer.stashContents[3],
 		resourceIcons[4], resourceNames[4], eventPlayer.stashContents[4],
 		resourceIcons.last(), resourceNames.last(), eventPlayer.stashContents.last()
-		), eventPlayer.stashPos + 0.5 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.6, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
+		), eventPlayer.stashPos + 0.75 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.6, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos + Vector.UP, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
@@ -399,8 +416,10 @@ rule "player init":
 	# take beam
 	createBeam(getAllPlayers() if eventPlayer.beamType == BEAMS.TAKE else [], Beam.GOOD, BeamOnTarget,
 		BeamOnPlayer, resourceColors[eventPlayer.resourceSel], EffectReeval.VISIBILITY_POSITION_RADIUS_AND_COLOR)
+	createEffect(getAllPlayers() if eventPlayer.beamType == BEAMS.TAKE else [], Effect.ORISA_HALT_TENDRIL_SOUND, Color.WHITE, eventPlayer, 60, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 
 	# put beam, with start & end reversed
+	createEffect(getAllPlayers() if eventPlayer.beamType == BEAMS.PUT else [], Effect.SYMMETRA_PROJECTOR_SOUND, Color.WHITE, eventPlayer, 70, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 	createBeam(getAllPlayers() if eventPlayer.beamType == BEAMS.PUT else [], Beam.GOOD, BeamOnPlayer,
 		BeamOnTarget, resourceColors[eventPlayer.resourceSel], EffectReeval.VISIBILITY_POSITION_RADIUS_AND_COLOR)
 
@@ -418,28 +437,58 @@ rule "player hero":
 	if eventPlayer.getCurrentHero() in [Hero.BAPTISTE, Hero.GENJI, Hero.LUCIO, Hero.HANZO, Hero.MERCY]:
 		eventPlayer.setStatusEffect(null, Status.HACKED, 9999)
 
+### game flow
+rule "new phase":
+	@Condition phaseTime > 10
+	wait()
+	if wantQueue == []:
+		wantQueue = random.shuffle(no0to7.slice(0, 6))
+
+	overseerWants = wantQueue[0]
+	wantQueue = wantQueue.slice(1, 69)
+
+	playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.TURQUOISE, techNPC, 1)
+	playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.VIOLET, marketNPC, 1)
+	techNPC.respawn()
+	marketNPC.respawn()
+
+	sellingTech = random.choice(no0to7.slice(0,6).exclude(sellingTech))
+
 ### npc
 rule "bonk npcs":
-	@Disabled
 	while true:
-		for techNPC.stashPos in range(DepositNo):
+		# deposits
+		for techNPC.isCarryingStash in range(DepositNo):
+			techNPC.stashPos = depositPos[techNPC.isCarryingStash]
 			if distance(techNPC, techNPC.stashPos) < 5:
-				techNPC.applyImpulse(directionTowards(techNPC.stashPos, techNPC) * vect(1,0,1), 10, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
+				techNPC.oldStashPos = techNPC
+				executeBonk()
 			if distance(marketNPC, techNPC.stashPos) < 5:
-				marketNPC.applyImpulse(directionTowards(techNPC.stashPos, marketNPC) * vect(1,0,1), 10, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
+				techNPC.oldStashPos = marketNPC
+				executeBonk()
 			wait()
 
+		# overseer
+		techNPC.stashPos = overseerPos
 		if distance(techNPC, overseerPos) < 5:
-			techNPC.applyImpulse(directionTowards(overseerPos, techNPC) * vect(1,0,1), 10, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
+			techNPC.oldStashPos = techNPC
+			executeBonk()
 		if distance(marketNPC, overseerPos) < 5:
-			marketNPC.applyImpulse(directionTowards(overseerPos, marketNPC) * vect(1,0,1), 10, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
+			techNPC.oldStashPos = marketNPC
+			executeBonk()
 
-		# for techNPC.stashPos in range distance(p.stashPos, techNPC) < 8])
+		# stashes
+		for techNPC.isCarryingStash in range(PlayerSlots):
+			techNPC.stashPos = getPlayersInSlot(techNPC.isCarryingStash, Team.ALL).stashPos
+			if distance(techNPC, techNPC.stashPos) < 4:
+				techNPC.oldStashPos = techNPC
+				executeBonk()
+			if distance(marketNPC, techNPC.stashPos) < 5:
+				techNPC.oldStashPos = marketNPC
+				executeBonk()
 
-		# for techNPC.stashPos in range(len())
-		wait(0.08)
+		wait(0.24)
 rule "npc facing":
-	@Disabled
 	while true:
 		techNPC.aiFaceTarget = sorted([x for x in getAllPlayers() if isInLoS(x.getEyePosition(), x.getEyePosition(), BarrierLos.PASS_THROUGH_BARRIERS) and not x.isDummy()], lambda y: distance(y, techNPC))[0]
 		wait(0.8)
@@ -458,6 +507,8 @@ rule "player/npc ded":
 			eventPlayer.resurrect()
 			playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, overseerColor, overseerPos, 1)
 	else:
+		eventPlayer.naughty = false
+		cleanBeam()
 		wait(3.2)
 		eventPlayer.respawn()
 		wait()
@@ -478,6 +529,7 @@ rule "close & personal with the overseer":
 rule "dump":
 	@Event eachPlayer
 	@Condition eventPlayer.isHoldingButton(Button.RELOAD)
+	wait(0.096)
 	eventPlayer.dumpProg += 5
 	if eventPlayer.dumpProg >= 100:
 		eventPlayer.dumpProg = 0
@@ -515,7 +567,7 @@ rule "set targets":
 	while true:
 		# 0...11 | DepositNo = overseer | marketNPC | players } array of positions
 		allTargets = depositPos.concat([overseerPos, marketNPC.getEyePosition()]).concat(
-			[getPlayersInSlot(p, Team.ALL).stashPos + Vector.UP for p in [0,1,2,3,4,5,6,7] if not getPlayersInSlot(p, Team.ALL).isCarryingStash])
+			[getPlayersInSlot(p, Team.ALL).stashPos + Vector.UP for p in no0to7 if not getPlayersInSlot(p, Team.ALL).isCarryingStash])
 		wait(0.096)
 
 rule "get player target":
@@ -592,20 +644,27 @@ rule "take":
 				depositAmts[eventPlayer.beamTargetIndex] if eventPlayer.beamTargetType == TARGETS.DEPOSIT \
 				else getPlayersInSlot(eventPlayer.beamTargetIndex, Team.ALL).stashContents[eventPlayer.resourceSel])
 
-			if eventPlayer.moveAmt == 0:
+			# if eventPlayer.moveAmt == 0:
+				# smallMessage(eventPlayer, "this {} has no more {} {}.".format(
+				# 	"stash" if eventPlayer.beamTargetType == TARGETS.STASH else "deposit",
+				# 	resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]
+				# ))
+				# cleanBeam()
+				# return
+
+			# switch to deposit resource
+			if eventPlayer.beamTargetType == TARGETS.DEPOSIT:
+				# if target moved
+				if depositPos[eventPlayer.beamTargetIndex] != eventPlayer.beamTarget:
+					cleanBeam()
+					return
+				eventPlayer.resourceSel = eventPlayer.beamTargetIndex % ResourceNo
+			elif eventPlayer.moveAmt == 0:
 				smallMessage(eventPlayer, "this {} has no more {} {}.".format(
-					"stash" if eventPlayer.beamTargetType == TARGETS.STASH else "deposit",
-					resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]
+					"stash", resourceIcons[eventPlayer.resourceSel], resourceNames[eventPlayer.resourceSel]
 				))
 				cleanBeam()
 				return
-			# if target moved
-			if depositPos[eventPlayer.beamTargetIndex] != eventPlayer.beamTarget:
-				cleanBeam()
-				return
-			# switch to deposit resource
-			if eventPlayer.beamTargetType == TARGETS.DEPOSIT:
-				eventPlayer.resourceSel = eventPlayer.beamTargetIndex % ResourceNo
 
 			# check inventory space
 			if eventPlayer.heldCap <= eventPlayer.heldContents[eventPlayer.resourceSel]:
@@ -703,7 +762,7 @@ rule "beam off cleanup":
 	@Event eachPlayer
 	@Condition not (eventPlayer.isHoldingButton(Button.PRIMARY_FIRE) or eventPlayer.isHoldingButton(Button.SECONDARY_FIRE)) \
 	or eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN)
-	smallMessage(hostPlayer, "cleanup")
+	# smallMessage(hostPlayer, "cleanup")
 	cleanBeam()
 	# wait(0.16)
 
@@ -711,11 +770,16 @@ rule "interact npc":
 	@Event eachPlayer
 	@Condition eventPlayer.isHoldingButton(Button.INTERACT)
 	if distance(eventPlayer, techNPC) < 3:
-		smallMessage(eventPlayer, "{} {}".format(heroIcon(techNPC.getCurrentHero()), ))
+		if eventPlayer.upgrades[sellingTech] < 10:
+			if eventPlayer.money < round(eventPlayer.upgrades[sellingTech] + 2.5 * (eventPlayer.upgrades[sellingTech] ** 2)):
+				smallMessage(eventPlayer, "{} you don't have enough money.".format(heroIcon(techNPC.getCurrentHero())))
+			else:
+				smallMessage(eventPlayer, "{} pleasure doing business with you.".format(heroIcon(techNPC.getCurrentHero())))
 
 ### deposits
 rule "deposit tp debug":
 	@Event eachPlayer
+	@Disabled
 	@Condition eventPlayer.isHoldingButton(Button.MELEE)
 	eventPlayer.teleport(depositPos[eventPlayer.aiFaceTarget])
 	eventPlayer.aiFaceTarget += 1
@@ -782,7 +846,6 @@ rule "init orisas":
 rule "orisa move":
 	@Event eachPlayer
 	@Hero orisa
-	@Disabled
 	@Condition eventPlayer.isDummy()
 	# @Condition eventPlayer.aiCd
 	@Condition eventPlayer.isAlive()
@@ -839,7 +902,6 @@ rule "orisa move":
 
 rule "orisa hi":
 	@Event eachPlayer
-	@Disabled
 	@Condition eventPlayer.isDummy()
 	@Condition eventPlayer != techNPC # need its variables for npc repos
 	while true:

@@ -60,7 +60,7 @@ globalvar resourceColors = [
 	Color.SKY_BLUE,
 	Color.GREEN,
 	Color.YELLOW,
-	Color.ORANGE,
+	rgb(102,66,40),
 	Color.GRAY,
 	Color.ROSE
 ]
@@ -81,6 +81,7 @@ globalvar rarityPick
 globalvar overseerPos = vect(143.490, 4.150, 247.490)
 globalvar overseerColor # = random.choice([Color.BLUE, Color.YELLOW])
 globalvar overseerWants
+globalvar wantQueue = []
 globalvar exchangeRate
 
 globalvar phaseTime
@@ -102,6 +103,7 @@ globalvar i_init
 # used in npc repos
 globalvar global_temp_1
 globalvar global_temp_2
+globalvar no0to7 = [0,1,2,3,4,5,6,7]
 
 ##########
 # PLAYER #
@@ -110,13 +112,14 @@ globalvar global_temp_2
 ### resources
 playervar heldContents = [0 for x in resourceNames]
 playervar stashContents = eventPlayer.heldContents
+playervar oldStashContents = eventPlayer.heldContents
 playervar heldCap
 playervar stashCap
 playervar money
 
 playervar stashPos # used for npc bonking
-playervar oldStashPos
-playervar isCarryingStash
+playervar oldStashPos # bonking
+playervar isCarryingStash # bonking
 
 playervar resourceSel
 
@@ -133,7 +136,8 @@ enum UPGRADES:
 	PUT,
 	MOVE,
 	HOLD,
-	STASH
+	STASH,
+	CAMO
 
 playervar upgrades = [0, 0, 0, 0, 0]
 
