@@ -52,14 +52,8 @@ settings {
 # melee - report
 
 /*todo
-- move hud to not overlap with small message
-	- stash contents below held?
-- beam off when bag full
-- beam persists even after look away
-- ui bg pointer size
-- no error msg when click with no target
-- stash tooltip not showing
-- hud gauge*/
+- stash contents below held?
+- beam persists even after look away*/
 
 #!extension beamSounds
 #!extension playMoreEffects
@@ -211,6 +205,7 @@ rule "global init":
 		"[{}] - view exchange rates".format(buttonString(Button.INTERACT)), marketNPC + Vector.UP, 1.05, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 	wait()
+	# give birth to orisas
 	for i_init in range(patrollerNo):
 		createDummy(Hero.ORISA, Team.ALL, PlayerSlots + 2 + i_init, overseerPos, angleToDirection(random.uniform(0, 359.9), 0))
 		getLastCreatedEntity().startForcingName("patrol unit or-{}".format(15 + i_init))
@@ -235,6 +230,7 @@ rule "global init":
 		(-0.35 + 0.03 * sin(2*getTotalTimeElapsed()) - 0.200 + HudOffset) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
 		3 * localPlayer.getFacingDirection())), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_COLOR, resourceColors[localPlayer.resourceSel], SpecVisibility.NEVER)
 
+	# ui
 	for i_init in range(ResourceNo):
 		# createInWorldText(localPlayer, header, pos, scale, clip, reeval, color, specvis)
 		# big icons
@@ -347,7 +343,7 @@ rule "player spawn pos?":
 	if distance(eventPlayer.temp_1, eventPlayer.temp_2) <= 0.25:
 		goto RULE_START
 	wait()
-	eventPlayer.temp_2 = nearestWalkablePosition(eventPlayer.temp_2)
+	eventPlayer.temp_2 = nearestWalkablePosition(eventPlayer.temp_2) + Vector.UP
 
 	# if too close to dealer, engineer, ???, any stash, or any deposit, pick a new spawn
 	if distance(eventPlayer.temp_2, marketNPC.getPosition()) <= 6.500 or distance(eventPlayer.temp_2, techNPC.getPosition()) <= 6.500 \
@@ -407,7 +403,7 @@ rule "player init":
 		), eventPlayer.stashPos + 0.75 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.6, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
-	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos + Vector.UP, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 
 	eventPlayer.beamType = BEAMS.OFF
 
@@ -496,6 +492,17 @@ rule "npc facing":
 		wait(0.8)
 
 ### player actions
+rule "stash contents hud":
+	@Event eachPlayer
+	@Condition eventPlayer.hasSpawned()
+	@Condition eventPlayer.isAlive()
+	do:
+		if eventPlayer.isInViewAngle(eventPlayer.stashPos, 70) and isInLoS(eventPlayer.stashPos, eventPlayer.getEyePosition(), BarrierLos.PASS_THROUGH_BARRIERS):
+			eventPlayer.lastStashUpdate = getTotalTimeElapsed()
+			eventPlayer.oldStashContents = eventPlayer.stashContents
+		wait(0.64)
+	while RULE_CONDITION
+
 rule "player/npc ded":
 	@Event playerDied
 	if eventPlayer.isDummy():
@@ -567,7 +574,7 @@ rule "set targets":
 	while true:
 		# 0...11 | DepositNo = overseer | marketNPC | players } array of positions
 		allTargets = depositPos.concat([overseerPos, marketNPC.getEyePosition()]).concat(
-			[getPlayersInSlot(p, Team.ALL).stashPos + Vector.UP for p in no0to7 if not getPlayersInSlot(p, Team.ALL).isCarryingStash])
+			[getPlayersInSlot(p, Team.ALL).stashPos for p in no0to7 if not getPlayersInSlot(p, Team.ALL).isCarryingStash])
 		wait(0.096)
 
 rule "get player target":

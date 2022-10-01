@@ -113,6 +113,7 @@ globalvar no0to7 = [0,1,2,3,4,5,6,7]
 playervar heldContents = [0 for x in resourceNames]
 playervar stashContents = eventPlayer.heldContents
 playervar oldStashContents = eventPlayer.heldContents
+playervar lastStashUpdate
 playervar heldCap
 playervar stashCap
 playervar money
