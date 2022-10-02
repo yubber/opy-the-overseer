@@ -23,7 +23,7 @@
 #!define SpaceLite "\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;\&fullwidth_space;"
 #!define HudOffset (-0.4)
 
-#!define BeamOnPlayer eventPlayer
+#!define BeamOnPlayer updateEveryTick(eventPlayer.getEyePosition() + eventPlayer.getFacingDirection() + worldVector(Vector.RIGHT, eventPlayer, Transform.ROTATION) * eventPlayer.weaponX + normalize(crossProduct(eventPlayer.getFacingDirection(), worldVector(Vector.RIGHT, eventPlayer, Transform.ROTATION))) * eventPlayer.weaponY)
 # eventPlayer + worldVector(vect(-0.225, 1.82, 0), eventPlayer, Transform.ROTATION)
 #!define BeamOnTarget eventPlayer.beamTarget
 
@@ -60,7 +60,7 @@ globalvar resourceColors = [
 	Color.SKY_BLUE,
 	Color.GREEN,
 	Color.YELLOW,
-	rgb(102,66,40),
+	Color.ORANGE,
 	Color.GRAY,
 	Color.ROSE
 ]
@@ -117,6 +117,7 @@ playervar lastStashUpdate
 playervar heldCap
 playervar stashCap
 playervar money
+playervar sprint
 
 playervar stashPos # used for npc bonking
 playervar oldStashPos # bonking
@@ -125,6 +126,8 @@ playervar isCarryingStash # bonking
 playervar resourceSel
 
 playervar dumpProg
+playervar weaponX
+playervar weaponY
 
 # upgrades
 playervar takeRange
