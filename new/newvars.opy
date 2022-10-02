@@ -15,6 +15,7 @@
 #!define humanPlayers getAllPlayers()
 # since target index will never exceed last player slot, optimized out
 # [gamer for gamer in getAllPlayers() if not gamer.isDummy()]
+# also change no0to7
 #!define PlayerSlots 8
 
 #!define orisaRaycastBlackMagic if (raycast(eventPlayer + vect(0, 2.5, 0) + eventPlayer.aiMoveDir * 2, eventPlayer + vect(0, -10, 0) + eventPlayer.aiMoveDir * 2, null, null, false).getHitPosition()).y >= eventPlayer.getPosition().y + -2.5 and isInLoS(eventPlayer + Vector.UP, Vector.UP + (raycast(eventPlayer + vect(0, 2.5, 0) + eventPlayer.aiMoveDir * 4, eventPlayer + vect(0, -10, 0) + eventPlayer.aiMoveDir * 4, null, null, false).getHitPosition()), BarrierLos.PASS_THROUGH_BARRIERS): continue
@@ -26,6 +27,8 @@
 #!define BeamOnPlayer updateEveryTick(eventPlayer.getEyePosition() + eventPlayer.getFacingDirection() + worldVector(Vector.RIGHT, eventPlayer, Transform.ROTATION) * eventPlayer.weaponX + normalize(crossProduct(eventPlayer.getFacingDirection(), worldVector(Vector.RIGHT, eventPlayer, Transform.ROTATION))) * eventPlayer.weaponY)
 # eventPlayer + worldVector(vect(-0.225, 1.82, 0), eventPlayer, Transform.ROTATION)
 #!define BeamOnTarget eventPlayer.beamTarget
+
+#!define InterestFormula (0.001 * 0.020 * distance(eventPlayer.stashPos, overseerPos) ** 2)
 
 ##########
 # GLOBAL #

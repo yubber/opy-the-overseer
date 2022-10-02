@@ -52,8 +52,8 @@ settings {
 # melee - report
 
 /*todo
-- stash contents below held?
-- beam persists even after look away*/
+- interest payment (in bursts)
+- what if deposits were monsters to fight (like polish salt mine)*/
 
 #!extension beamSounds
 #!extension playMoreEffects
@@ -372,7 +372,7 @@ rule "player init":
 
 	eventPlayer.stashPos = eventPlayer.temp_2
 	eventPlayer.oldStashPos = eventPlayer.stashPos
-	eventPlayer.interest = 0.001 * 0.020 * distance(eventPlayer.stashPos, overseerPos) ** 2
+	eventPlayer.interest = InterestFormula
 
 	eventPlayer.targetIndex = -1
 	eventPlayer.beamTargetType = TARGETS.NONE
@@ -549,6 +549,39 @@ rule "npc facing":
 		wait(0.8)
 
 ### player actions
+rule "move stash":
+	@Event eachPlayer
+	@Condition eventPlayer.isHoldingButton(Button.CROUCH)
+	@Condition eventPlayer.beamType == BEAMS.OFF
+	@Condition distance(eventPlayer, eventPlayer.stashPos) < 2.4
+	@Condition isInLoS(eventPlayer.getEyePosition(), eventPlayer.stashPos)
+	if eventPlayer.heldContents != [0 for x in resourceNames]:
+		smallMessage(eventPlayer, "you can't carry your stash with resources in your inventory.")
+		return
+
+	if eventPlayer.isCarryingStash:
+		if distance(eventPlayer, techNPC) < 6.5 or distance(eventPlayer, marketNPC) < 6.5:
+			smallMessage(eventPlayer, "your stash can't be too close to an NPC.")
+		elif distance(eventPlayer, overseerPos) <= 12.333:
+			smallMessage(eventPlayer, "{} move your stash farther from the overseer, peasant.".format(iconString(Icon.EYE)))
+		elif any([distance(eventPlayer, x) < 5]):
+			smallMessage(eventPlayer, "your stash can't be too close to a resource deposit.")
+		elif any([distance(eventPlayer, getPlayersInSlot(x, Team.ALL).stashPos) < 8 for x in no0to7]):
+			smallMessage(eventPlayer, "your stash can't be too close to others' stashes.")
+		else:
+			goto lbl_0
+		return
+		lbl_0:
+		eventPlayer.stashPos = eventPlayer.getPosition() + Vector.UP
+		eventPlayer.interest = InterestFormula
+		playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.SKY_BLUE, eventPlayer, 3.5)
+		eventPlayer.oldStashPos = eventPlayer.stashPos
+		eventPlayer.isCarryingStash = false
+	else:
+		eventPlayer.stashPos = null
+		eventPlayer.isCarryingStash = true
+	updateStats()
+
 rule "stash contents hud":
 	@Event eachPlayer
 	@Condition eventPlayer.hasSpawned()
