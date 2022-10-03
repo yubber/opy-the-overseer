@@ -218,8 +218,8 @@ rule "global init":
 	hudSubtext([x for x in getAllPlayers() if x.naughty], "orisas and other players can report you.", HudPosition.TOP, 3.1, Color.ORANGE, HudReeval.VISIBILITY)
 	progressBarHud([x for x in getAllPlayers() if x.dumpProg > 0], localPlayer.dumpProg, "[{}] - dumping held resources".format(buttonString(Button.RELOAD)), HudPosition.TOP, 7, Color.RED, Color.RED, ProgressHudReeval.VISIBILITY_AND_VALUES, SpecVisibility.DEFAULT)
 
-	hudText(getAllPlayers(), "Ø", l"Money", "{} overbles".format(localPlayer.money), HudPosition.LEFT, 1, Color.RED, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.NEVER)
-	hudText(getAllPlayers(), iconString(Icon.EYE), "loyalty", "tier {}".format(localPlayer.money), HudPosition.LEFT, 2, Color.RED, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.NEVER)
+	hudText(getAllPlayers(), "Ø", l"Money", "{} overbles".format(localPlayer.money), HudPosition.LEFT, 1, Color.GREEN, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.NEVER)
+	hudText(getAllPlayers(), iconString(Icon.EYE), "loyalty", "{} points".format(localPlayer.loyaltyRank), HudPosition.LEFT, 2, Color.RED, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.NEVER)
 
 	hudSubtext(getAllPlayers(), " \n[{}] - view stash contents\n(only updates when looking at your stash)".format(buttonString(Button.CROUCH)), HudPosition.LEFT, 3, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.NEVER)
 
@@ -254,7 +254,7 @@ rule "global init":
 			3 * localPlayer.getFacingDirection())), 2.4, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.NEVER)
 		# held no
 		createInWorldText(getLivingPlayers(Team.ALL), "{}.{}".format(
-				floor(localPlayer.heldContents[evalOnce(i_init)]), (localPlayer.heldContents[evalOnce(i_init)] % 1).substring(2, getTotalTimeElapsed())
+				floor(localPlayer.heldContents[evalOnce(i_init)]), round(localPlayer.heldContents[evalOnce(i_init)] % 1))
 			),
 			updateEveryTick(
 			localPlayer.getEyePosition() + 100 * (
@@ -363,7 +363,7 @@ rule "player spawn pos?":
 	or any([distance(x, eventPlayer.temp_2) < 5 for x in depositPos.exclude(null)]):
 		goto RULE_START
 
-	eventPlayer.stealingMod = 1
+	eventPlayer.naughtyMult = 1
 
 rule "player init":
 	@Event eachPlayer
@@ -401,16 +401,16 @@ rule "player init":
 
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{}'s stash\n{} max per resource".format(eventPlayer, eventPlayer.stashCap), eventPlayer.stashPos + 2.5 * Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}.{}\n{} {}: {}.{}\n{} {}: {}.{}".format(
-		resourceIcons[0], resourceNames[0], eventPlayer.stashContents[0], (eventPlayer.stashContents[0] * 10).substring(2, getTotalTimeElapsed()),
-		resourceIcons[1], resourceNames[1], eventPlayer.stashContents[1], (eventPlayer.stashContents[1] * 10).substring(2, getTotalTimeElapsed()),
-		resourceIcons[2], resourceNames[2], eventPlayer.stashContents[2], (eventPlayer.stashContents[2] * 10).substring(2, getTotalTimeElapsed())
+		resourceIcons[0], resourceNames[0], eventPlayer.stashContents[0], round((eventPlayer.stashContents[0]) % 1),
+		resourceIcons[1], resourceNames[1], eventPlayer.stashContents[1], round((eventPlayer.stashContents[1]) % 1),
+		resourceIcons[2], resourceNames[2], eventPlayer.stashContents[2], round((eventPlayer.stashContents[2]) % 1)
 		), eventPlayer.stashPos + 0.75 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}.{}\n{} {}: {}.{}\n{} {}: {}.{}".format(
-		resourceIcons[3], resourceNames[3], eventPlayer.heldContents[3], (eventPlayer.heldContents[3] * 10).substring(2, getTotalTimeElapsed()),
-		resourceIcons[4], resourceNames[4], eventPlayer.heldContents[4], (eventPlayer.heldContents[4] * 10).substring(2, getTotalTimeElapsed()),
-		resourceIcons.last(), resourceNames.last(), eventPlayer.heldContents.last(), (eventPlayer.heldContents.last() * 10).substring(2, getTotalTimeElapsed())
+		resourceIcons[3], resourceNames[3], eventPlayer.heldContents[3], round((eventPlayer.heldContents[3]) % 1),
+		resourceIcons[4], resourceNames[4], eventPlayer.heldContents[4], round((eventPlayer.heldContents[4]) % 1),
+		resourceIcons.last(), resourceNames.last(), eventPlayer.heldContents.last(), round((eventPlayer.heldContents.last()) % 1)
 		), eventPlayer.stashPos + 0.75 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.6, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
@@ -489,6 +489,17 @@ rule "player hero":
 	eventPlayer.weaponX = eventPlayer.weaponX[0]
 
 ### game flow
+rule "update loyalty":
+	@Event eachPlayer
+	@Condition eventPlayer.isAlive()
+	do:
+		wait(2.4)
+		eventPlayer.loyaltyRank = round(eventPlayer.loyaltyPoints * (-0.008 * 0.04 * 0.04 * abs(eventPlayer.loyaltyPoints) + 0.8 * 0.04))
+		if eventPlayer.loyaltyRank > 1250:
+			eventPlayer.loyaltyRank = 20 + (eventPlayer.loyaltyPoints < 0) * -40
+		eventPlayer.naughtyMult = 1 + ((eventPlayer.loyaltyRank >= 1) * (eventPlayer.loyaltyRank + -0.5))
+
+	while RULE_CONDITION
 rule "new phase":
 	@Condition phaseTime > 10
 	wait()
