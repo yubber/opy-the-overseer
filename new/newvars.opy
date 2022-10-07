@@ -176,9 +176,11 @@ playervar beamPrompt
 playervar targets
 
 playervar naughty
+playervar naughtyMult
 playervar stealingMod
 playervar interest
-playervar loyalty
+playervar loyaltyRank
+playervar loyaltyPoints
 
 ### npc
 playervar npcFaceTarget

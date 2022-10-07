@@ -254,7 +254,7 @@ rule "global init":
 			3 * localPlayer.getFacingDirection())), 2.4, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.NEVER)
 		# held no
 		createInWorldText(getLivingPlayers(Team.ALL), "{}.{}".format(
-				floor(localPlayer.heldContents[evalOnce(i_init)]), round(localPlayer.heldContents[evalOnce(i_init)] % 1))
+				floor(localPlayer.heldContents[evalOnce(i_init)]), round(localPlayer.heldContents[evalOnce(i_init)] % 1)
 			),
 			updateEveryTick(
 			localPlayer.getEyePosition() + 100 * (
@@ -565,7 +565,7 @@ rule "move stash":
 	@Condition eventPlayer.isHoldingButton(Button.CROUCH)
 	@Condition eventPlayer.beamType == BEAMS.OFF
 	@Condition distance(eventPlayer, eventPlayer.stashPos) < 2.4
-	@Condition isInLoS(eventPlayer.getEyePosition(), eventPlayer.stashPos)
+	@Condition isInLoS(eventPlayer.getEyePosition(), eventPlayer.stashPos, BarrierLos.PASS_THROUGH_BARRIERS)
 	if eventPlayer.heldContents != [0 for x in resourceNames]:
 		smallMessage(eventPlayer, "you can't carry your stash with resources in your inventory.")
 		return
@@ -575,7 +575,7 @@ rule "move stash":
 			smallMessage(eventPlayer, "your stash can't be too close to an NPC.")
 		elif distance(eventPlayer, overseerPos) <= 12.333:
 			smallMessage(eventPlayer, "{} move your stash farther from the overseer, peasant.".format(iconString(Icon.EYE)))
-		elif any([distance(eventPlayer, x) < 5]):
+		elif any([distance(eventPlayer, x) < 5 for x in depositPos]):
 			smallMessage(eventPlayer, "your stash can't be too close to a resource deposit.")
 		elif any([distance(eventPlayer, getPlayersInSlot(x, Team.ALL).stashPos) < 8 for x in no0to7]):
 			smallMessage(eventPlayer, "your stash can't be too close to others' stashes.")
@@ -627,7 +627,7 @@ rule "close & personal with the overseer":
 	@Event eachPlayer
 	@Condition not eventPlayer.isDummy()
 	@Condition distance(eventPlayer, overseerPos + Vector.DOWN) <= 3
-	if eventPlayer.loyalty >= 20:
+	if eventPlayer.loyaltyRank >= 20:
 		smallMessage(eventPlayer, "{} your loyalty has earned you a seat beside me.".format(iconString(Icon.EYE)))
 	else:
 		kill(eventPlayer, null)
@@ -1019,12 +1019,12 @@ rule "orisa hi":
 		eventPlayer.temp_2 = getPlayersInRadius(eventPlayer, 6, Team.ALL, LosCheck.SURFACES)
 		# if (eventPlayer == techNPC and temp_2)
 		if eventPlayer.getCurrentHero() == Hero.ORISA:
-			eventPlayer.temp_2 = [x for x in eventPlayer.temp_2 if x.loyalty >= 1]
+			eventPlayer.temp_2 = [x for x in eventPlayer.temp_2 if x.loyaltyRank >= 1]
 			if eventPlayer.temp_2:
 				eventPlayer.communicate(Comms.HELLO)
 				smallMessage(eventPlayer.temp_2, "{}: {}".format(heroIcon(Hero.ORISA), random.choice(orisaQuips)))
 		elif eventPlayer == marketNPC:
-			eventPlayer.temp_2 = [x for x in eventPlayer.temp_2 if x.loyalty < 0]
+			eventPlayer.temp_2 = [x for x in eventPlayer.temp_2 if x.loyaltyRank < 0]
 			if eventPlayer.temp_2:
 				eventPlayer.communicate(Comms.HELLO)
 				smallMessage(random.choice(eventPlayer.temp_2), "{} psst... wanna sell some resources?".format(heroIcon(eventPlayer.getCurrentHero())))
