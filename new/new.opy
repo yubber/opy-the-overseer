@@ -14,7 +14,8 @@ settings {
             "enableEnemyHealthBars": false,
             "gamemodeStartTrigger": "immediately",
 			"enabledMaps": [
-                "oasisCityCenter"
+				"workshopChamber"
+                # "oasisCityCenter"
             ]
         },
         "general": {
@@ -27,7 +28,7 @@ settings {
                 "enablePassive": false
             },
             "general": {
-                "enableMelee": false,
+                # "enableMelee": false,
                 "damageDealt%": 10,
                 "ultDuration%": 25,
                 "ultGen%": 10,
@@ -42,6 +43,8 @@ settings {
 
 #!include "newvars.opy"
 
+#!define fixdp(x)	"{}.{}0".format(floor(x), floor(((x) * 10) % 10))
+
 # bindings
 # crouch - stash pickup
 # reload - dump (prompt when can't carry stash bc holding stuff)
@@ -52,7 +55,14 @@ settings {
 # melee - report
 
 /*todo
+- fix bonking
 - interest payment (in bursts)
+to check
+- debug move stash
+- check bug: quickly swapping to put beam allows putting in a deposit
+- fix decimal places HHHHH
+- check remove tooltip when stash picked up
+ideas
 - what if deposits were monsters to fight (like polish salt mine)*/
 
 #!extension beamSounds
@@ -184,7 +194,7 @@ rule "global init":
 	techNPC.startFacing(directionTowards(techNPC.getEyePosition(), techNPC.npcFaceTarget), 100, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
 	createInWorldText(getAllPlayers(), "{0} Technician".format(iconString(Icon.BOLT)), techNPC, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
 	createInWorldText(localPlayer if distance(localPlayer, techNPC) < 3.5 and isInLoS(localPlayer, techNPC, BarrierLos.PASS_THROUGH_BARRIERS) else [],
-		"{} Ø{}.
+		"{} {}.
 		[{}] - accept".format(
 			heroIcon(techNPC.getCurrentHero()),
 			"i don't have anything you could use at the moment." if localPlayer.upgrades[sellingTech] >= 10 \
@@ -214,8 +224,10 @@ rule "global init":
 	### huds
 	hudText(getAllPlayers(), b"\&fullwidth_space; the overseer demands {} {}\&fullwidth_space;".format(resourceIcons[overseerWants], resourceNames[overseerWants]), "", " \n ", HudPosition.TOP, 1, overseerColor, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.ALWAYS)
 	hudSubtext(getAllPlayers(), "Ø{} per 10 units sold\&fullwidth_space;|\&fullwidth_space;{}s to next resource".format(exchangeRate * 10, round(phaseTime)), HudPosition.TOP, 1.1, overseerColor, HudReeval.VISIBILITY_AND_STRING)
-	hudHeader([x for x in getAllPlayers() if x.naughty], b"{} committing crime".format(iconString(Icon.WARNING)), HudPosition.TOP, 3, Color.ORANGE, HudReeval.VISIBILITY)
-	hudSubtext([x for x in getAllPlayers() if x.naughty], "orisas and other players can report you.", HudPosition.TOP, 3.1, Color.ORANGE, HudReeval.VISIBILITY)
+
+	hudSubtext(getAllPlayers(), " \n \n \n ", HudPosition.TOP, 3, Color.GRAY, HudReeval.VISIBILITY)
+	hudHeader([x for x in getAllPlayers() if x.naughty], b"{} committing crime".format(iconString(Icon.WARNING)), HudPosition.TOP, 3.1, Color.ORANGE, HudReeval.VISIBILITY)
+	hudSubtext([x for x in getAllPlayers() if x.naughty], "orisas and other players can report you.", HudPosition.TOP, 3.2, Color.ORANGE, HudReeval.VISIBILITY)
 	progressBarHud([x for x in getAllPlayers() if x.dumpProg > 0], localPlayer.dumpProg, "[{}] - dumping held resources".format(buttonString(Button.RELOAD)), HudPosition.TOP, 7, Color.RED, Color.RED, ProgressHudReeval.VISIBILITY_AND_VALUES, SpecVisibility.DEFAULT)
 
 	hudText(getAllPlayers(), "Ø", l"Money", "{} overbles".format(localPlayer.money), HudPosition.LEFT, 1, Color.GREEN, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.NEVER)
@@ -226,9 +238,7 @@ rule "global init":
 	### slime rancher
 	# crosshair
 	createInWorldText(getLivingPlayers(Team.ALL), "\&white_circle;",
-		updateEveryTick(localPlayer.getEyePosition() + 100 * (
-		(0 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-		3 * localPlayer.getFacingDirection())), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.LIME_GREEN, SpecVisibility.NEVER)
+		updateEveryTick(localPlayer.getEyePosition() + localPlayer.getFacingDirection()), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.LIME_GREEN, SpecVisibility.NEVER)
 
 	createInWorldText(getLivingPlayers(Team.ALL), "\&down_black_triangle;",
 		updateEveryTick(localPlayer.getEyePosition() + 100 * ((-0.75 + localPlayer.resourceSel * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
@@ -253,14 +263,12 @@ rule "global init":
 			(-0.6 - 0.2 + HudOffset) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
 			3 * localPlayer.getFacingDirection())), 2.4, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.NEVER)
 		# held no
-		createInWorldText(getLivingPlayers(Team.ALL), "{}.{}".format(
-				floor(localPlayer.heldContents[evalOnce(i_init)]), round(localPlayer.heldContents[evalOnce(i_init)] % 1)
-			),
+		createInWorldText(getLivingPlayers(Team.ALL), fixdp(localPlayer.heldContents[evalOnce(i_init)]),
 			updateEveryTick(
 			localPlayer.getEyePosition() + 100 * (
 			evalOnce(-0.75 + i_init * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
 			(-0.8 - 0.2 + HudOffset) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-			3 * localPlayer.getFacingDirection())), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
+			3 * localPlayer.getFacingDirection())), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
 		# held bars
 		createInWorldText(getLivingPlayers(Team.ALL),
 			" {}{} ".format(
@@ -273,6 +281,7 @@ rule "global init":
 			(-0.9 - 0.2 + HudOffset) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
 			3 * localPlayer.getFacingDirection())), 0.9, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, resourceColors[evalOnce(i_init)], SpecVisibility.NEVER)
 
+	# button prompts
 	createInWorldText(getLivingPlayers(Team.ALL), "[{}] \&left_black_triangle; "SpaceSpam" \&right_black_triangle; [{}]".format(buttonString(Button.ULTIMATE), buttonString(Button.ABILITY_2)),
 		updateEveryTick(
 		localPlayer.getEyePosition() + 100 * (
@@ -282,22 +291,13 @@ rule "global init":
 
 	# todo change to held & stash 1, max 1 iwt
 	createInWorldText(getLivingPlayers(Team.ALL),
-		"stashed"SpaceSpam SpaceLite"max {}".format(localPlayer.heldCap) if localPlayer.isHoldingButton(Button.CROUCH) \
+		"stashed"SpaceSpam SpaceLite"max {}".format(localPlayer.stashCap) if localPlayer.isHoldingButton(Button.CROUCH) \
 		else "\&fullwidth_space;held"SpaceSpam SpaceLite"max {}".format(localPlayer.heldCap),
 		updateEveryTick(
 		localPlayer.getEyePosition() + 100 * (
 		/*(-0.1) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +*/
 		(-0.87 - 0.2 + HudOffset) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
 		3 * localPlayer.getFacingDirection())), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
-
-	# createProgressBarInWorldText(getLivingPlayers(Team.ALL),
-	# 	localPlayer.heldContents[localPlayer.resourceSel] / localPlayer.heldCap * 100,
-	# 	"{} / {}".format(localPlayer.heldContents[localPlayer.resourceSel], localPlayer.heldCap),
-	# 	updateEveryTick(
-			# localPlayer.getEyePosition() + 100 * (
-			# /* 0 * World Vector Of(Right, Local Player, Rotation) + */
-			# (-1 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-			# 3 * localPlayer.getFacingDirection())), 1.6, Clip.NONE, resourceColors[localPlayer.resourceSel], Color.WHITE, ProgressWorldTextReeval.VISIBILITY_POSITION_VALUES_AND_COLOR, SpecVisibility.NEVER)
 
 	# lol. lmao
 	# IF ANYONE NEEDS THE SOURCE OVERPY CODE FOR THIS PLESE CONTACT yubber1337@gmail.com I KNOW HOW IT FEELS
@@ -365,6 +365,8 @@ rule "player spawn pos?":
 
 	eventPlayer.naughtyMult = 1
 
+	eventPlayer.setAllowedHeroes(getAllHeroes())
+
 rule "player init":
 	@Event eachPlayer
 	@Condition (not eventPlayer.isDummy()) or eventPlayer.getSlot() < PlayerSlots
@@ -382,6 +384,7 @@ rule "player init":
 	eventPlayer.setAbility1Enabled(false)
 	eventPlayer.setAbility2Enabled(false)
 	eventPlayer.setUltEnabled(false)
+	eventPlayer.setDamageDealt(0)
 
 	eventPlayer.disableGamemodeHud()
 	eventPlayer.disableHeroHUD()
@@ -400,18 +403,18 @@ rule "player init":
 	createIcon(eventPlayer, eventPlayer.stashPos + 3*Vector.UP, Icon.TRASHCAN, IconReeval.POSITION, Color.BLUE, true)
 
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{}'s stash\n{} max per resource".format(eventPlayer, eventPlayer.stashCap), eventPlayer.stashPos + 2.5 * Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
-	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}.{}\n{} {}: {}.{}\n{} {}: {}.{}".format(
-		resourceIcons[0], resourceNames[0], eventPlayer.stashContents[0], round((eventPlayer.stashContents[0]) % 1),
-		resourceIcons[1], resourceNames[1], eventPlayer.stashContents[1], round((eventPlayer.stashContents[1]) % 1),
-		resourceIcons[2], resourceNames[2], eventPlayer.stashContents[2], round((eventPlayer.stashContents[2]) % 1)
-		), eventPlayer.stashPos + 0.75 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
+	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}\n{} {}: {}\n{} {}: {}".format(
+		resourceIcons[0], resourceNames[0], fixdp(eventPlayer.stashContents[0]),
+		resourceIcons[1], resourceNames[1], fixdp(eventPlayer.stashContents[1]),
+		resourceIcons[2], resourceNames[2], fixdp(eventPlayer.stashContents[2])
+		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.72, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
-	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}.{}\n{} {}: {}.{}\n{} {}: {}.{}".format(
-		resourceIcons[3], resourceNames[3], eventPlayer.heldContents[3], round((eventPlayer.heldContents[3]) % 1),
-		resourceIcons[4], resourceNames[4], eventPlayer.heldContents[4], round((eventPlayer.heldContents[4]) % 1),
-		resourceIcons.last(), resourceNames.last(), eventPlayer.heldContents.last(), round((eventPlayer.heldContents.last()) % 1)
-		), eventPlayer.stashPos + 0.75 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.6, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
+	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}\n{} {}: {}\n{} {}: {}".format(
+		resourceIcons[3], resourceNames[3], fixdp(eventPlayer.stashContents[3]),
+		resourceIcons[4], resourceNames[4], fixdp(eventPlayer.stashContents[4]),
+		resourceIcons.last(), resourceNames.last(), fixdp(eventPlayer.stashContents.last())
+		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.72, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
 		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
@@ -448,7 +451,7 @@ rule "player hero":
 	@Condition not eventPlayer.isDummy()
 	eventPlayer.clearStatusEffect(Status.HACKED)
 	wait(0.16)
-	if eventPlayer.getCurrentHero() in [Hero.BAPTISTE, Hero.GENJI, Hero.LUCIO, Hero.HANZO, Hero.MERCY]:
+	if eventPlayer.getCurrentHero() in [Hero.BAPTISTE, Hero.KIRIKO, Hero.GENJI, Hero.LUCIO, Hero.HANZO, Hero.MERCY]:
 		eventPlayer.setStatusEffect(null, Status.HACKED, 9999)
 
 	eventPlayer.weaponX = {
@@ -462,7 +465,7 @@ rule "player hero":
 		Hero.WINSTON: [0.2, 0.35],
 		Hero.WIDOWMAKER: [0.13, 0.16],
 		Hero.BASTION: [0.21, 0.15],
-		Hero.SYMMETRA: [0.26, 0.19],
+		Hero.SYMMETRA: [0.28, 0.19],
 		Hero.ZENYATTA: [0, 0.4],
 		Hero.GENJI: [-0.44, 0.42],
 		Hero.ROADHOG: [0.26, 0.15],
@@ -482,13 +485,44 @@ rule "player hero":
 		Hero.ASHE: [0.15, 0.07],
 		Hero.ECHO: [0.78, 0.46],
 		Hero.BAPTISTE: [0.19, 0.11],
-		Hero.SIGMA: [0.38, 0.13]
+		Hero.SIGMA: [0.38, 0.13],
+		Hero.SOJOURN: [0.15, 0.13],
+		Hero.KIRIKO: [-0.53, 0.08],
+		Hero.JUNKER_QUEEN: [0.22, 0.13]
 	}[eventPlayer.getCurrentHero()]
 
 	eventPlayer.weaponY = eventPlayer.weaponX.last()
 	eventPlayer.weaponX = eventPlayer.weaponX[0]
 
+	if eventPlayer.getCurrentHero() in [Hero.TRACER, Hero.GENJI]:
+		eventPlayer.setMoveSpeed(100)
+	else:
+		eventPlayer.setMoveSpeed((6/5.5)*100)
+
+	eventPlayer.setStatusEffect(null, Status.INVINCIBLE, 9999)
+
 ### game flow
+rule "phase timer":
+	@Condition phaseTime > 0
+	phaseTime--
+	wait(1)
+	if phaseTime <= 0:
+		if wantQueue == []:
+			wantQueue = random.shuffle(no0to7.slice(0, 6))
+
+		overseerWants = wantQueue[0]
+		wantQueue = wantQueue.slice(1, 69)
+
+		playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.TURQUOISE, techNPC, 1)
+		playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.VIOLET, marketNPC, 1)
+		techNPC.respawn()
+		marketNPC.respawn()
+
+		sellingTech = random.choice(no0to7.slice(0,6).exclude(sellingTech))
+
+		phaseTime = random.randint(150, 200)
+	goto RULE_START
+
 rule "update loyalty":
 	@Event eachPlayer
 	@Condition eventPlayer.isAlive()
@@ -498,25 +532,7 @@ rule "update loyalty":
 		if eventPlayer.loyaltyRank > 1250:
 			eventPlayer.loyaltyRank = 20 + (eventPlayer.loyaltyPoints < 0) * -40
 		eventPlayer.naughtyMult = 1 + ((eventPlayer.loyaltyRank >= 1) * (eventPlayer.loyaltyRank + -0.5))
-
 	while RULE_CONDITION
-rule "new phase":
-	@Condition phaseTime > 10
-	wait()
-	if wantQueue == []:
-		wantQueue = random.shuffle(no0to7.slice(0, 6))
-
-	overseerWants = wantQueue[0]
-	wantQueue = wantQueue.slice(1, 69)
-
-	playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.TURQUOISE, techNPC, 1)
-	playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.VIOLET, marketNPC, 1)
-	techNPC.respawn()
-	marketNPC.respawn()
-
-	sellingTech = random.choice(no0to7.slice(0,6).exclude(sellingTech))
-
-	phaseTime = random.randint(150, 200)
 
 ### npc
 rule "bonk npcs":
@@ -577,7 +593,8 @@ rule "move stash":
 			smallMessage(eventPlayer, "{} move your stash farther from the overseer, peasant.".format(iconString(Icon.EYE)))
 		elif any([distance(eventPlayer, x) < 5 for x in depositPos]):
 			smallMessage(eventPlayer, "your stash can't be too close to a resource deposit.")
-		elif any([distance(eventPlayer, getPlayersInSlot(x, Team.ALL).stashPos) < 8 for x in no0to7]):
+		# if player exists and is not event player
+		elif any([distance(eventPlayer, getPlayersInSlot(x, Team.ALL).stashPos) < 8 for x in no0to7 if (getPlayersInSlot(x, Team.ALL).stashPos != null) and eventPlayer.getSlot() != x]):
 			smallMessage(eventPlayer, "your stash can't be too close to others' stashes.")
 		else:
 			goto lbl_0
@@ -586,11 +603,14 @@ rule "move stash":
 		eventPlayer.stashPos = eventPlayer.getPosition() + Vector.UP
 		eventPlayer.interest = InterestFormula
 		playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.SKY_BLUE, eventPlayer, 3.5)
+		wait()
 		eventPlayer.oldStashPos = eventPlayer.stashPos
 		eventPlayer.isCarryingStash = false
 	else:
 		eventPlayer.stashPos = null
 		eventPlayer.isCarryingStash = true
+		eventPlayer.targetPos = null
+		eventPlayer.targetType = TARGETS.NONE
 	updateStats()
 
 rule "stash contents hud":
@@ -612,6 +632,7 @@ rule "player/npc ded":
 			eventPlayer.respawn()
 		else:
 			eventPlayer.teleport(overseerPos)
+			wait()
 			eventPlayer.resurrect()
 			playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, overseerColor, overseerPos, 1)
 	else:
@@ -657,7 +678,7 @@ rule "cycle resource prev [q]":
 	@Condition eventPlayer.beamTargetType != TARGETS.OVERSEER
 	do:
 		eventPlayer.resourceSel =  ResourceNo - 1 if eventPlayer.resourceSel == 0 else (eventPlayer.resourceSel - 1)
-		wait(0.24)
+		wait(0.24, Wait.ABORT_WHEN_FALSE)
 	while RULE_CONDITION
 
 rule "cycle resource next [e]":
@@ -668,7 +689,7 @@ rule "cycle resource next [e]":
 	@Condition eventPlayer.beamTargetType != TARGETS.OVERSEER
 	do:
 		eventPlayer.resourceSel = (eventPlayer.resourceSel + 1) % ResourceNo
-		wait(0.24)
+		wait(0.24, Wait.ABORT_WHEN_FALSE)
 	while RULE_CONDITION
 
 rule "set targets":
@@ -683,13 +704,10 @@ rule "get player target":
 	@Condition eventPlayer.hasSpawned()
 	@Condition not eventPlayer.isDummy()
 	@Condition eventPlayer.isAlive()
+	@Condition not eventPlayer.isCarryingStash
+	@Condition not eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN)
 	do:
 		wait(0.096)
-		if eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN) or eventPlayer.isCarryingStash:
-			eventPlayer.beamPrompt = null
-			return
-
-		wait()
 		# filters for in range. SET PLAYER RANGE VARS FIRST
 		eventPlayer.targets = [x for x in allTargets if x != null and isInLoS(eventPlayer.getEyePosition(), x, BarrierLos.PASS_THROUGH_BARRIERS) and distance(eventPlayer, x) <= max(eventPlayer.takeRange, eventPlayer.putRange) and eventPlayer.isInViewAngle(x, 40)]
 		wait()
@@ -705,7 +723,7 @@ rule "get player target":
 		eventPlayer.targetIndex = allTargets.index(eventPlayer.targetPos)
 
 		# playEffect(eventPlayer, DynamicEffect.BAD_EXPLOSION, Color.PURPLE, eventPlayer.targetPos, 99)
-
+		wait()
 		if eventPlayer.targetIndex == -1:
 			continue
 
@@ -822,6 +840,8 @@ rule "put":
 				return
 		else:
 			lbl_0:
+			if eventPlayer.beamTargetType in [TARGETS.NONE, TARGETS.DEPOSIT]:
+				return
 			# los or distance
 			if not isInLoS(eventPlayer.getEyePosition(), eventPlayer.beamTarget, BarrierLos.PASS_THROUGH_BARRIERS) or distance(eventPlayer, eventPlayer.beamTarget) > eventPlayer.takeRange:
 				cleanBeam()
@@ -843,11 +863,13 @@ rule "put":
 				return
 			# if target moved
 
-			# yoink
+			# ploink
 			eventPlayer.beamType = BEAMS.PUT
 			switch eventPlayer.beamTargetType:
 				case TARGETS.OVERSEER:
 					eventPlayer.money += eventPlayer.moveAmt * exchangeRate
+					eventPlayer.loyaltyPoints += eventPlayer.moveAmt
+					# eventPlayer.contributed_in_phase += eventPlayer.moveAmt
 					break
 				case TARGETS.STASH:
 					# check stash space
@@ -944,7 +966,7 @@ rule "init orisas":
 	@Condition eventPlayer.isDummy()
 	@Condition eventPlayer.hasSpawned()
 	eventPlayer.disableRespawn()
-	eventPlayer.setStatusEffect(null, Status.PHASED_OUT, 9999)
+	eventPlayer.setStatusEffect(null, Status.INVINCIBLE, 9999)
 	# eventPlayer.disableEnvironmentCollision(false)
 	eventPlayer.aiOldPos = vect(45.120, -23.900, 15.140)
 	eventPlayer.aiCurrentAngle = horizontalAngleOfDirection(eventPlayer.getFacingDirection())
@@ -1030,3 +1052,5 @@ rule "orisa hi":
 				smallMessage(random.choice(eventPlayer.temp_2), "{} psst... wanna sell some resources?".format(heroIcon(eventPlayer.getCurrentHero())))
 
 		wait(4.8)
+
+/**/

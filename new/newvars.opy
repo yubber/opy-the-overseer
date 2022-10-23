@@ -44,28 +44,28 @@ globalvar sellingTech
 ### resources
 # ui
 globalvar resourceNames = [
-	"minerals",
-	"vespene gas",
-	"sulfur",
+	"food",
 	"lumber",
-	"stone",
-	"food"
+	"sulfur",
+	"vespene gas",
+	"minerals",
+	"stone"
 ]
 globalvar resourceIcons = [
-	abilityIconString(Hero.ECHO, Button.SECONDARY_FIRE),
-	abilityIconString(Hero.PHARAH, Button.ABILITY_1),
-	abilityIconString(Hero.MEI, Button.ABILITY_1),
+	abilityIconString(Hero.ROADHOG, Button.ABILITY_2),
 	abilityIconString(Hero.ASHE, Button.ABILITY_2),
-	abilityIconString(Hero.SIGMA, Button.ABILITY_2),
-	abilityIconString(Hero.ROADHOG, Button.ABILITY_2)
+	abilityIconString(Hero.MEI, Button.ABILITY_1),
+	abilityIconString(Hero.PHARAH, Button.ABILITY_1),
+	abilityIconString(Hero.ECHO, Button.SECONDARY_FIRE),
+	abilityIconString(Hero.SIGMA, Button.ABILITY_2)
 ]
 globalvar resourceColors = [
-	Color.SKY_BLUE,
-	Color.GREEN,
-	Color.YELLOW,
+	Color.ROSE,
 	Color.ORANGE,
-	Color.GRAY,
-	Color.ROSE
+	Color.YELLOW,
+	Color.GREEN,
+	Color.SKY_BLUE,
+	Color.GRAY
 ]
 
 globalvar allTargets
