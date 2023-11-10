@@ -14,8 +14,8 @@ settings {
             "enableEnemyHealthBars": false,
             "gamemodeStartTrigger": "immediately",
 			"enabledMaps": [
-				"workshopChamber"
-                # "oasisCityCenter"
+				#"workshopChamber"
+                "oasisCityCenter"
             ]
         },
         "general": {
@@ -57,11 +57,19 @@ settings {
 /*todo
 - fix bonking
 - interest payment (in bursts)
+- remote stash content view
+- change overseer color to gray/black/white for Appropriateness
 to check
 - debug move stash
 - check bug: quickly swapping to put beam allows putting in a deposit
-- fix decimal places HHHHH
 - check remove tooltip when stash picked up
+to fix
+- resource bar qol (pips 0 only when empty, pips max only when max)
+- bonking
+- stash tooltip flicker
+- stash content hud spacing
+- new heroes weapon pos
+- technician dialog init
 ideas
 - what if deposits were monsters to fight (like polish salt mine)*/
 
@@ -134,7 +142,7 @@ rule "global init":
 	patrollerNo = createWorkshopSetting(int[1:9], "difficulty", "number of patrolling orisas", 6, 0)
 
 	### overseer
-	overseerColor = random.choice([Color.BLUE, Color.YELLOW])
+	overseerColor = random.choice([Color.BLUE, Color.WHITE, Color.BLACK])
 	createEffect(getAllPlayers(), Effect.CLOUD, overseerColor, overseerPos + Vector.UP, 3, EffectReeval.VISIBILITY)
 	createEffect(getAllPlayers(), Effect.SPHERE, overseerColor, overseerPos + Vector.UP, 3 + 0.5 * sin(getTotalTimeElapsed()), EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 
@@ -238,7 +246,7 @@ rule "global init":
 	### slime rancher
 	# crosshair
 	createInWorldText(getLivingPlayers(Team.ALL), "\&white_circle;",
-		updateEveryTick(localPlayer.getEyePosition() + localPlayer.getFacingDirection()), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.LIME_GREEN, SpecVisibility.NEVER)
+		updateEveryTick(localPlayer.getEyePosition() + localPlayer.getFacingDirection() * 999), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.LIME_GREEN, SpecVisibility.NEVER)
 
 	createInWorldText(getLivingPlayers(Team.ALL), "\&down_black_triangle;",
 		updateEveryTick(localPlayer.getEyePosition() + 100 * ((-0.75 + localPlayer.resourceSel * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
@@ -372,6 +380,9 @@ rule "player init":
 	@Condition (not eventPlayer.isDummy()) or eventPlayer.getSlot() < PlayerSlots
 	@Condition eventPlayer.hasSpawned()
 
+	if eventPlayer == hostPlayer:
+		eventPlayer.setMoveSpeed(250)
+
 	eventPlayer.stashPos = eventPlayer.temp_2
 	eventPlayer.oldStashPos = eventPlayer.stashPos
 	eventPlayer.interest = InterestFormula
@@ -407,15 +418,15 @@ rule "player init":
 		resourceIcons[0], resourceNames[0], fixdp(eventPlayer.stashContents[0]),
 		resourceIcons[1], resourceNames[1], fixdp(eventPlayer.stashContents[1]),
 		resourceIcons[2], resourceNames[2], fixdp(eventPlayer.stashContents[2])
-		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.72, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
-		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.8, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
+		1.4, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}\n{} {}: {}\n{} {}: {}".format(
 		resourceIcons[3], resourceNames[3], fixdp(eventPlayer.stashContents[3]),
 		resourceIcons[4], resourceNames[4], fixdp(eventPlayer.stashContents[4]),
 		resourceIcons.last(), resourceNames.last(), fixdp(eventPlayer.stashContents.last())
-		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.72, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
-		1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.8, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
+		1.4, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 
@@ -439,10 +450,11 @@ rule "player init":
 	))
 
 	waitUntil(eventPlayer.getThrottle() != vect(0,0,0), 69)
+	wait(2)
 	smallMessage(eventPlayer, "{} bring the overseer what he asks for.".format(iconString(Icon.EYE)))
-	wait(2)
+	wait(3)
 	smallMessage(eventPlayer, "{} it is our duty as good citizens.".format(iconString(Icon.EYE)))
-	wait(2)
+	wait(3)
 	smallMessage(eventPlayer, "{} fulfil it and you will be rewarded generously.".format(iconString(Icon.EYE)))
 
 rule "player hero":
@@ -1053,4 +1065,9 @@ rule "orisa hi":
 
 		wait(4.8)
 
-/**/
+rule "stop sombra stealth":
+	while true:
+		damage(getPlayersOnHero(Hero.SOMBRA, Team.ALL), null, 2)
+		wait()
+		heal(getPlayersOnHero(Hero.SOMBRA, Team.ALL), null, 10)
+		wait(3)
