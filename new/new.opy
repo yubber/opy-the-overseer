@@ -380,9 +380,6 @@ rule "player init":
 	@Condition (not eventPlayer.isDummy()) or eventPlayer.getSlot() < PlayerSlots
 	@Condition eventPlayer.hasSpawned()
 
-	if eventPlayer == hostPlayer:
-		eventPlayer.setMoveSpeed(250)
-
 	eventPlayer.stashPos = eventPlayer.temp_2
 	eventPlayer.oldStashPos = eventPlayer.stashPos
 	eventPlayer.interest = InterestFormula
@@ -500,7 +497,10 @@ rule "player hero":
 		Hero.SIGMA: [0.38, 0.13],
 		Hero.SOJOURN: [0.15, 0.13],
 		Hero.KIRIKO: [-0.53, 0.08],
-		Hero.JUNKER_QUEEN: [0.22, 0.13]
+		Hero.JUNKER_QUEEN: [0.22, 0.13],
+		Hero.LIFEWEAVER: [0.27, 0.18],
+		Hero.RAMMATRA staff: [0.58, -0.32],
+    	Hero.ILLARI: [0.18, 0.22]
 	}[eventPlayer.getCurrentHero()]
 
 	eventPlayer.weaponY = eventPlayer.weaponX.last()
@@ -512,6 +512,9 @@ rule "player hero":
 		eventPlayer.setMoveSpeed((6/5.5)*100)
 
 	eventPlayer.setStatusEffect(null, Status.INVINCIBLE, 9999)
+
+	if eventPlayer == hostPlayer:
+		eventPlayer.setMoveSpeed(250)
 
 ### game flow
 rule "phase timer":
