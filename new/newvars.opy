@@ -155,9 +155,9 @@ enum BEAMS:
 
 playervar beamType
 
-# currently active beam so player can turn away
-playervar beamTarget
-playervar beamTargetType
+# currently active beam so player can turn away and have prompts independent of the active beam
+playervar beamTarget # target pos
+playervar beamTargetType # deposit/stash/etc
 playervar beamTargetIndex
 playervar moveAmt
 

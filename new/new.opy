@@ -27,6 +27,14 @@ settings {
             "echo": {
                 "enablePassive": false
             },
+			"lifeweaver": {
+                "enableAbility2": false,
+                "enableSecondaryFire": false,
+                "enablePrimaryFire": false,
+                "enableAbility1": false,
+                "enableUlt": false,
+                "weaponsEnabled": "healingBlossom"
+            },
             "general": {
                 # "enableMelee": false,
                 "damageDealt%": 10,
@@ -79,7 +87,7 @@ ideas
 #!extension spawnMoreDummyBots
 
 def executeBonk(): # technpc old stash pos is player, stashpos is source
-	techNPC.oldStashPos.applyImpulse(directionTowards(techNPC.stashPos, techNPC.oldStashPos) * vect(1,0,1), 10, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
+	techNPC.oldStashPos.applyImpulse(directionTowards(techNPC.stashPos, techNPC.oldStashPos) * vect(1,0.2,1), 10, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
 
 def cleanBeam():
 	eventPlayer.beamTarget = null
@@ -142,7 +150,7 @@ rule "global init":
 	patrollerNo = createWorkshopSetting(int[1:9], "difficulty", "number of patrolling orisas", 6, 0)
 
 	### overseer
-	overseerColor = random.choice([Color.BLUE, Color.WHITE, Color.BLACK])
+	overseerColor = random.choice([Color.BLUE, Color.GRAY, Color.RED])
 	createEffect(getAllPlayers(), Effect.CLOUD, overseerColor, overseerPos + Vector.UP, 3, EffectReeval.VISIBILITY)
 	createEffect(getAllPlayers(), Effect.SPHERE, overseerColor, overseerPos + Vector.UP, 3 + 0.5 * sin(getTotalTimeElapsed()), EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 
@@ -196,8 +204,8 @@ rule "global init":
 	# techNPC.disableRespawn()
 	# marketNPC.disableRespawn()
 
-	techNPC.setStatusEffect(null, Status.PHASED_OUT, 9999)
-	marketNPC.setStatusEffect(null, Status.PHASED_OUT, 9999)
+	techNPC.setStatusEffect(null, Status.UNKILLABLE, 9999)
+	marketNPC.setStatusEffect(null, Status.UNKILLABLE, 9999)
 	wait()
 	techNPC.startFacing(directionTowards(techNPC.getEyePosition(), techNPC.npcFaceTarget), 100, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
 	createInWorldText(getAllPlayers(), "{0} Technician".format(iconString(Icon.BOLT)), techNPC, 1.25, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_POSITION, Color.WHITE, SpecVisibility.DEFAULT)
@@ -236,7 +244,7 @@ rule "global init":
 	hudSubtext(getAllPlayers(), " \n \n \n ", HudPosition.TOP, 3, Color.GRAY, HudReeval.VISIBILITY)
 	hudHeader([x for x in getAllPlayers() if x.naughty], b"{} committing crime".format(iconString(Icon.WARNING)), HudPosition.TOP, 3.1, Color.ORANGE, HudReeval.VISIBILITY)
 	hudSubtext([x for x in getAllPlayers() if x.naughty], "orisas and other players can report you.", HudPosition.TOP, 3.2, Color.ORANGE, HudReeval.VISIBILITY)
-	progressBarHud([x for x in getAllPlayers() if x.dumpProg > 0], localPlayer.dumpProg, "[{}] - dumping held resources".format(buttonString(Button.RELOAD)), HudPosition.TOP, 7, Color.RED, Color.RED, ProgressHudReeval.VISIBILITY_AND_VALUES, SpecVisibility.DEFAULT)
+	progressBarHud([x for x in getAllPlayers() if x.dumpProg > 0], localPlayer.dumpProg, "[{}] - deleting held resources".format(buttonString(Button.RELOAD)), HudPosition.TOP, 7, Color.RED, Color.RED, ProgressHudReeval.VISIBILITY_AND_VALUES, SpecVisibility.DEFAULT)
 
 	hudText(getAllPlayers(), "Ø", l"Money", "{} overbles".format(localPlayer.money), HudPosition.LEFT, 1, Color.GREEN, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.NEVER)
 	hudText(getAllPlayers(), iconString(Icon.EYE), "loyalty", "{} points".format(localPlayer.loyaltyRank), HudPosition.LEFT, 2, Color.RED, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.NEVER)
@@ -308,11 +316,11 @@ rule "global init":
 		3 * localPlayer.getFacingDirection())), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
 
 	# lol. lmao
-	# IF ANYONE NEEDS THE SOURCE OVERPY CODE FOR THIS PLESE CONTACT yubber1337@gmail.com I KNOW HOW IT FEELS
+	# IF ANYONE NEEDS THE SOURCE OVERPY CODE FOR THIS PLESE CONTACT yubber0@proton.me I KNOW HOW IT FEELS
 	createInWorldText(localPlayer if localPlayer.targetType != TARGETS.NONE else [],
 		(
 			"can't carry any more" if localPlayer.heldCap <= localPlayer.heldContents[localPlayer.targetIndex % ResourceNo] \
-				else ("too far to take" if localPlayer.takeRange < distance(localPlayer, localPlayer.targetPos) else "[{}] - take".format(buttonString(Button.PRIMARY_FIRE)))
+				else ("too far to take" if localPlayer.takeRange < distance(localPlayer, localPlayer.targetPos) else "[{}] - collect".format(buttonString(Button.PRIMARY_FIRE)))
 		) if localPlayer.targetType == TARGETS.DEPOSIT else (
 			"no {} {} to sell".format(resourceIcons[localPlayer.resourceSel], resourceNames[localPlayer.resourceSel]) if localPlayer.heldContents[localPlayer.resourceSel] <= 0 \
 			else ("too far to sell" if distance(localPlayer, localPlayer.targetPos) > localPlayer.putRange \
@@ -344,12 +352,12 @@ rule "global init":
 		localPlayer.targetPos - Vector.UP * (2 if localPlayer.targetType == TARGETS.STASH else 1), 1.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER
 	) # header, pos, scale, clip, reeval, color, specvis
 
-	print("target {}".format(["depo", "overs", "stash", "market"][hostPlayer.beamTarget]))
-	print("type {}".format(["take", "put"][hostPlayer.beamTargetType]))
+	print("targ type {}".format(["depo", "overs", "stash", "market"][hostPlayer.beamTargetType]))
+	print("beam type {}".format(["take", "put"][hostPlayer.beamType]))
 	print("index {}".format(hostPlayer.beamTargetIndex))
 	print(getPlayersInSlot(hostPlayer.beamTargetIndex, Team.ALL))
 
-	phaseTime = 240
+	phaseTime = 1
 
 rule "player spawn pos?":
 	@Event eachPlayer
@@ -415,17 +423,17 @@ rule "player init":
 		resourceIcons[0], resourceNames[0], fixdp(eventPlayer.stashContents[0]),
 		resourceIcons[1], resourceNames[1], fixdp(eventPlayer.stashContents[1]),
 		resourceIcons[2], resourceNames[2], fixdp(eventPlayer.stashContents[2])
-		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.8, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
+		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * min(-0.82, (-0.15 * distance(localPlayer, eventPlayer.stashPos))), # min(-0.6, (-0.15 * distance(localPlayer, eventPlayer.stashPos)))
 		1.4, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 	createInWorldText([] if eventPlayer.isCarryingStash else getAllPlayers(), "{} {}: {}\n{} {}: {}\n{} {}: {}".format(
 		resourceIcons[3], resourceNames[3], fixdp(eventPlayer.stashContents[3]),
 		resourceIcons[4], resourceNames[4], fixdp(eventPlayer.stashContents[4]),
 		resourceIcons.last(), resourceNames.last(), fixdp(eventPlayer.stashContents.last())
-		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.8, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
+		), eventPlayer.stashPos + 0 * Vector.UP + worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) * max(0.82, (0.15 * distance(localPlayer, eventPlayer.stashPos))),
 		1.4, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
-	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE, eventPlayer.stashPos, 2.2, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+	createEffect(getAllPlayers(), Effect.SPHERE, Color.BLUE if localPlayer == eventPlayer else Color.SKY_BLUE, eventPlayer.stashPos, 2.2, EffectReeval.VISIBILITY_POSITION_RADIUS_AND_COLOR)
 
 	eventPlayer.beamType = BEAMS.OFF
 
@@ -498,9 +506,9 @@ rule "player hero":
 		Hero.SOJOURN: [0.15, 0.13],
 		Hero.KIRIKO: [-0.53, 0.08],
 		Hero.JUNKER_QUEEN: [0.22, 0.13],
-		Hero.LIFEWEAVER: [0.27, 0.18],
-		Hero.RAMMATRA staff: [0.58, -0.32],
-    	Hero.ILLARI: [0.18, 0.22]
+		Hero.LIFEWEAVER: [0.68, 0.25],
+		Hero.RAMATTRA: [0.58, -0.32],
+    	Hero.ILLARI: [0.18, 0.21]
 	}[eventPlayer.getCurrentHero()]
 
 	eventPlayer.weaponY = eventPlayer.weaponX.last()
@@ -670,11 +678,11 @@ rule "close & personal with the overseer":
 		smallMessage(eventPlayer, "{} ONLY THE TRULY LOYAL MAY APPROACH THE OVERSEER.".format(iconString(Icon.EYE)))
 
 # resources
-rule "dump":
+rule "delete resources":
 	@Event eachPlayer
 	@Condition eventPlayer.isHoldingButton(Button.RELOAD)
 	wait(0.096)
-	eventPlayer.dumpProg += 5
+	eventPlayer.dumpProg += 4
 	if eventPlayer.dumpProg >= 100:
 		eventPlayer.dumpProg = 0
 		eventPlayer.heldContents = [0 for x in resourceNames]
@@ -709,7 +717,7 @@ rule "cycle resource next [e]":
 
 rule "set targets":
 	while true:
-		# 0...11 | DepositNo = overseer | marketNPC | players } array of positions
+		# resource deposits 0...11 | DepositNo = overseer | marketNPC | players } array of positions
 		allTargets = depositPos.concat([overseerPos, marketNPC.getEyePosition()]).concat(
 			[getPlayersInSlot(p, Team.ALL).stashPos for p in no0to7 if not getPlayersInSlot(p, Team.ALL).isCarryingStash])
 		wait(0.096)
@@ -735,22 +743,27 @@ rule "get player target":
 			eventPlayer.targetPos = null
 			continue
 
-		eventPlayer.targetIndex = allTargets.index(eventPlayer.targetPos)
+		wait()
+		# moved up to thwart stash hud flicker issues
+		if allTargets.index(eventPlayer.targetPos) > DepositNo + 1:
+			eventPlayer.targetIndex = allTargets.index(eventPlayer.targetPos) - (DepositNo + 2)
+			eventPlayer.targetType = TARGETS.STASH
+			continue # bug
+		else:
+			eventPlayer.targetIndex = allTargets.index(eventPlayer.targetPos)
 
 		# playEffect(eventPlayer, DynamicEffect.BAD_EXPLOSION, Color.PURPLE, eventPlayer.targetPos, 99)
-		wait()
-		if eventPlayer.targetIndex == -1:
-			continue
-
-		if eventPlayer.targetIndex < DepositNo: # deposit
-			eventPlayer.targetType = TARGETS.DEPOSIT
-		elif eventPlayer.targetIndex == DepositNo: # overseer
-			eventPlayer.targetType = TARGETS.OVERSEER
-		elif eventPlayer.targetIndex == DepositNo + 1: # marketer
-			eventPlayer.targetType = TARGETS.MARKET
-		else: # stash
-			eventPlayer.targetIndex -= (DepositNo + 2)
-			eventPlayer.targetType = TARGETS.STASH
+			if eventPlayer.targetIndex == -1:
+				continue
+			if eventPlayer.targetIndex < DepositNo: # deposit
+				eventPlayer.targetType = TARGETS.DEPOSIT
+			elif eventPlayer.targetIndex == DepositNo: # overseer
+				eventPlayer.targetType = TARGETS.OVERSEER
+			elif eventPlayer.targetIndex == DepositNo + 1: # marketer
+				eventPlayer.targetType = TARGETS.MARKET
+		# else: # stash. removed because the re-setting caused stash hud to flicker
+		# 	eventPlayer.targetIndex -= (DepositNo + 2)
+		# 	eventPlayer.targetType = TARGETS.STASH
 	while RULE_CONDITION
 
 rule "take":
