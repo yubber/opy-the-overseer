@@ -30,6 +30,19 @@
 
 #!define InterestFormula (0.001 * 0.020 * distance(eventPlayer.stashPos, overseerPos) ** 2)
 
+# " {}{} ".format(
+# 				"■■■■■".substring(0, (floor( localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5))),
+# 				"□□□□□".substring(0, (ceil(5 - (localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap) * 5)))
+# 				),# "■" if localPlayer.heldContents[evalOnce(i_init)] >= localPlayer.heldCap else "□"),
+#!define _bar_len 5
+#!define progressbar(count, total):
+	"{}{}{}{}".format(
+		"■" if count > 0 else "□",
+		"■■■".substring(0, 1- ceil(1.2*total - count)/total*3),
+		"□□□".substring(0, ceil(1.2*total - count)/total*3),
+		"■" if count >= total else "□",
+	)
+
 ##########
 # GLOBAL #
 ##########

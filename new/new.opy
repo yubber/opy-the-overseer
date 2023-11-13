@@ -287,10 +287,8 @@ rule "global init":
 			3 * localPlayer.getFacingDirection())), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
 		# held bars
 		createInWorldText(getLivingPlayers(Team.ALL),
-			" {}{} ".format(
-				"■■■■■".substring(0, (floor(localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5))),
-				"□□□□□".substring(0, (ceil(5 - (localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap * 5))))
-				),# "■" if localPlayer.heldContents[evalOnce(i_init)] >= localPlayer.heldCap else "□"),
+			progressbar(localPlayer.stastContents[evalOnce(i_init)] if localPlayer.isHoldingButton(Button.CROUCH) else localPlayer.heldContents[evalOnce(i_init)],
+				localPlayer.stashCap[evalOnce(i_init)] if localPlayer.isHoldingButton(Button.CROUCH) else localPlayer.heldCap[evalOnce(i_init)]),
 			updateEveryTick(
 			localPlayer.getEyePosition() + 100 * (
 			evalOnce(-0.75 + i_init * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
