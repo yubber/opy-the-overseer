@@ -35,13 +35,8 @@
 # 				"□□□□□".substring(0, (ceil(5 - (localPlayer.heldContents[evalOnce(i_init)] / localPlayer.heldCap) * 5)))
 # 				),# "■" if localPlayer.heldContents[evalOnce(i_init)] >= localPlayer.heldCap else "□"),
 #!define _bar_len 5
-#!define progressbar(count, total):
-	"{}{}{}{}".format(
-		"■" if count > 0 else "□",
-		"■■■".substring(0, 1- ceil(1.2*total - count)/total*3),
-		"□□□".substring(0, ceil(1.2*total - count)/total*3),
-		"■" if count >= total else "□",
-	)
+#!define progressbar(count, total) ("{}{}{}{}".format("■" if count > 0 else "□","■■■".substring(0,min(3, round(3 * count / total))) if total > 0 else "","□□□".substring(min(3, round(3 * count / total)),3) if total > 0 else "□□□", "■" if count >= total else "□"))
+# !define progressbar(count, total) ("{}{}{}{}{}".format("■" if count > 0 else "□","■" if count > 0.4 * total else "□","■" if count > 0.6 * total else "□", "■" if count > 0.8 * total else "□" "■" if count >= total else "□"))
 
 ##########
 # GLOBAL #

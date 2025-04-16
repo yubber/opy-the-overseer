@@ -287,8 +287,8 @@ rule "global init":
 			3 * localPlayer.getFacingDirection())), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.NEVER)
 		# held bars
 		createInWorldText(getLivingPlayers(Team.ALL),
-			progressbar(localPlayer.stastContents[evalOnce(i_init)] if localPlayer.isHoldingButton(Button.CROUCH) else localPlayer.heldContents[evalOnce(i_init)],
-				localPlayer.stashCap[evalOnce(i_init)] if localPlayer.isHoldingButton(Button.CROUCH) else localPlayer.heldCap[evalOnce(i_init)]),
+			progressbar((localPlayer.stashContents[evalOnce(i_init)] if localPlayer.isHoldingButton(Button.CROUCH) else localPlayer.heldContents[evalOnce(i_init)]),
+				(localPlayer.stashCap if localPlayer.isHoldingButton(Button.CROUCH) else localPlayer.heldCap)),
 			updateEveryTick(
 			localPlayer.getEyePosition() + 100 * (
 			evalOnce(-0.75 + i_init * 0.3) * worldVector(Vector.RIGHT, localPlayer, Transform.ROTATION) +
@@ -438,13 +438,14 @@ rule "player init":
 	# createBeam(getAllPlayers(), Beam.GOOD, eventPlayer,
 	# 	eventPlayer.targetPos, Color.VIOLET, EffectReeval.VISIBILITY_POSITION_RADIUS_AND_COLOR)
 	# take beam
-	createBeam(getAllPlayers() if eventPlayer.beamType == BEAMS.TAKE else [], Beam.GOOD, BeamOnTarget,
+	# GOOD beams were replaced with mercy skin beams... wtf workshop
+	createBeam(getAllPlayers() if eventPlayer.beamType == BEAMS.TAKE else [], Beam.BAD, BeamOnTarget,
 		BeamOnPlayer, resourceColors[eventPlayer.resourceSel], EffectReeval.VISIBILITY_POSITION_RADIUS_AND_COLOR)
 	createEffect(getAllPlayers() if eventPlayer.beamType == BEAMS.TAKE else [], Effect.ORISA_HALT_TENDRIL_SOUND, Color.WHITE, eventPlayer, 60, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
 
 	# put beam, with start & end reversed
 	createEffect(getAllPlayers() if eventPlayer.beamType == BEAMS.PUT else [], Effect.SYMMETRA_PROJECTOR_SOUND, Color.WHITE, eventPlayer, 70, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-	createBeam(getAllPlayers() if eventPlayer.beamType == BEAMS.PUT else [], Beam.GOOD, BeamOnPlayer,
+	createBeam(getAllPlayers() if eventPlayer.beamType == BEAMS.PUT else [], Beam.BAD, BeamOnPlayer,
 		BeamOnTarget, resourceColors[eventPlayer.resourceSel], EffectReeval.VISIBILITY_POSITION_RADIUS_AND_COLOR)
 
 	bigMessage(eventPlayer, "THE OVERSEER {} {}".format(
